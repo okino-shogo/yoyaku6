@@ -1,0 +1,1915 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>設定画面 - 予約管理システム</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Hiragino Sans', 'Yu Gothic UI', 'Meiryo', sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .header {
+            background: #2c3e50;
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 24px;
+        }
+
+        .header .nav {
+            display: flex;
+            gap: 20px;
+        }
+
+        .header .nav a {
+            color: white;
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+
+        .header .nav a:hover,
+        .header .nav a.active {
+            background-color: rgba(255,255,255,0.2);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .page-title {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .page-title h2 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        .page-title p {
+            color: #666;
+        }
+
+        .tabs {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .tab-headers {
+            display: flex;
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .tab-header {
+            flex: 1;
+            padding: 15px 20px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            color: #495057;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+        }
+
+        .tab-header:hover {
+            background: #e9ecef;
+        }
+
+        .tab-header.active {
+            color: #007bff;
+            border-bottom-color: #007bff;
+            background: white;
+        }
+
+        .tab-content {
+            display: none;
+            padding: 20px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .content-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .content-header h3 {
+            color: #2c3e50;
+        }
+
+        .filters {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 15px;
+            align-items: end;
+            flex-wrap: wrap;
+        }
+
+        .filter-group {
+            flex: 1;
+            min-width: 150px;
+        }
+
+        .filter-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+
+        .filter-group input,
+        .filter-group select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background-color: #007bff;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #0056b3;
+        }
+
+        .btn-success {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background-color: #1e7e34;
+        }
+
+        .btn-danger {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background-color: #c82333;
+        }
+
+        .btn-secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background-color: #5a6268;
+        }
+
+        .btn-sm {
+            padding: 5px 10px;
+            font-size: 12px;
+        }
+
+        .data-table {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+            color: #495057;
+        }
+
+        tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        .actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .no-data {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+
+        /* モーダル */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 0;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h4 {
+            margin: 0;
+            color: #2c3e50;
+        }
+
+        .close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #aaa;
+        }
+
+        .close:hover {
+            color: #000;
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .modal-footer {
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-top: 1px solid #dee2e6;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            height: 80px;
+        }
+
+        .required {
+            color: #dc3545;
+        }
+
+        .form-error {
+            color: #dc3545;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+
+        /* システム設定専用スタイル */
+        .settings-sections {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+
+        .setting-section {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            border-left: 4px solid #007bff;
+        }
+
+        .setting-section h4 {
+            margin: 0 0 20px 0;
+            color: #2c3e50;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .setting-form {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .setting-form .form-group {
+            margin-bottom: 0;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .filters {
+                flex-direction: column;
+            }
+            
+            .tab-headers {
+                flex-direction: column;
+            }
+            
+            .content-header {
+                flex-direction: column;
+                gap: 10px;
+                align-items: stretch;
+            }
+            
+            .actions {
+                flex-direction: column;
+            }
+
+            .setting-form {
+                grid-template-columns: 1fr;
+            }
+
+            .settings-sections {
+                gap: 20px;
+            }
+
+            .setting-section {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🏨 予約管理システム</h1>
+        <nav class="nav">
+            <a href="/">新規予約</a>
+            <a href="/admin">予約一覧</a>
+            <a href="/monthly">月間ビュー</a>
+            <a href="/daily">日間ビュー</a>
+            <a href="/settings" class="active">設定</a>
+        </nav>
+    </div>
+
+    <div class="container">
+        <div class="page-title">
+            <h2>⚙️ システム設定</h2>
+            <p>部屋、プラン、システムの設定を管理します</p>
+        </div>
+
+        <div id="error-message" class="error" style="display: none;"></div>
+        <div id="success-message" class="success" style="display: none;"></div>
+
+        <div class="tabs">
+            <div class="tab-headers">
+                <button class="tab-header active" data-tab="rooms">部屋一覧</button>
+                <button class="tab-header" data-tab="room-types">部屋タイプ</button>
+                <button class="tab-header" data-tab="room-groups">部屋グループ</button>
+                <button class="tab-header" data-tab="plans">プラン管理</button>
+                <button class="tab-header" data-tab="system">システム設定</button>
+            </div>
+
+            <!-- 部屋一覧タブ -->
+            <div id="rooms-tab" class="tab-content active">
+                <div class="content-header">
+                    <h3>部屋管理</h3>
+                    <button class="btn btn-success" onclick="openRoomModal()">+ 新規追加</button>
+                </div>
+
+                <div class="filters">
+                    <div class="filter-group">
+                        <label>グループ</label>
+                        <select id="room-group-filter">
+                            <option value="">すべて</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>タイプ</label>
+                        <select id="room-type-filter">
+                            <option value="">すべて</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>部屋番号</label>
+                        <input type="text" id="room-search" placeholder="部屋番号で検索">
+                    </div>
+                    <div class="filter-group">
+                        <button class="btn btn-primary" onclick="loadRooms()">検索</button>
+                        <button class="btn btn-secondary" onclick="clearRoomFilters()">クリア</button>
+                    </div>
+                </div>
+
+                <div class="data-table">
+                    <div id="rooms-loading" class="loading">読み込み中...</div>
+                    <div id="rooms-no-data" class="no-data" style="display: none;">データがありません</div>
+                    <table id="rooms-table" style="display: none;">
+                        <thead>
+                            <tr>
+                                <th>部屋番号</th>
+                                <th>タイプ</th>
+                                <th>グループ</th>
+                                <th>定員(大人)</th>
+                                <th>定員(子ども)</th>
+                                <th>表示順</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="rooms-tbody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 部屋タイプタブ -->
+            <div id="room-types-tab" class="tab-content">
+                <div class="content-header">
+                    <h3>部屋タイプ管理</h3>
+                    <button class="btn btn-success" onclick="openRoomTypeModal()">+ 新規追加</button>
+                </div>
+
+                <div class="data-table">
+                    <div id="room-types-loading" class="loading">読み込み中...</div>
+                    <div id="room-types-no-data" class="no-data" style="display: none;">データがありません</div>
+                    <table id="room-types-table" style="display: none;">
+                        <thead>
+                            <tr>
+                                <th>タイプ名</th>
+                                <th>説明</th>
+                                <th>デフォルト定員(大人)</th>
+                                <th>デフォルト定員(子ども)</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="room-types-tbody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 部屋グループタブ -->
+            <div id="room-groups-tab" class="tab-content">
+                <div class="content-header">
+                    <h3>部屋グループ管理</h3>
+                    <button class="btn btn-success" onclick="openRoomGroupModal()">+ 新規追加</button>
+                </div>
+
+                <div class="data-table">
+                    <div id="room-groups-loading" class="loading">読み込み中...</div>
+                    <div id="room-groups-no-data" class="no-data" style="display: none;">データがありません</div>
+                    <table id="room-groups-table" style="display: none;">
+                        <thead>
+                            <tr>
+                                <th>グループ名</th>
+                                <th>作成日</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="room-groups-tbody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- プラン管理タブ -->
+            <div id="plans-tab" class="tab-content">
+                <div class="content-header">
+                    <h3>プラン管理</h3>
+                    <button class="btn btn-success" onclick="openPlanModal()">+ 新規追加</button>
+                </div>
+
+                <div class="filters">
+                    <div class="filter-group">
+                        <label>状態</label>
+                        <select id="plan-status-filter">
+                            <option value="">すべて</option>
+                            <option value="1">有効</option>
+                            <option value="0">無効</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>プラン名</label>
+                        <input type="text" id="plan-search" placeholder="プラン名で検索">
+                    </div>
+                    <div class="filter-group">
+                        <button class="btn btn-primary" onclick="loadPlans()">検索</button>
+                        <button class="btn btn-secondary" onclick="clearPlanFilters()">クリア</button>
+                    </div>
+                </div>
+
+                <div class="data-table">
+                    <div id="plans-loading" class="loading">読み込み中...</div>
+                    <div id="plans-no-data" class="no-data" style="display: none;">データがありません</div>
+                    <table id="plans-table" style="display: none;">
+                        <thead>
+                            <tr>
+                                <th>プラン名</th>
+                                <th>説明</th>
+                                <th>基本料金</th>
+                                <th>状態</th>
+                                <th>表示順</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="plans-tbody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- システム設定タブ -->
+            <div id="system-tab" class="tab-content">
+                <div class="content-header">
+                    <h3>システム設定</h3>
+                    <button class="btn btn-primary" onclick="saveSystemSettings()">設定を保存</button>
+                </div>
+
+                <div class="settings-sections">
+                    <!-- 基本情報設定 -->
+                    <div class="setting-section">
+                        <h4>🏢 基本情報</h4>
+                        <div class="setting-form">
+                            <div class="form-group">
+                                <label for="facility-name">施設名 <span class="required">*</span></label>
+                                <input type="text" id="facility-name" placeholder="施設名を入力してください" maxlength="100" required>
+                                <div class="form-error" id="facility-name-error"></div>
+                            </div>
+                            <div class="form-group">
+                                <label for="facility-address">施設住所</label>
+                                <textarea id="facility-address" placeholder="住所を入力してください" maxlength="200"></textarea>
+                                <div class="form-error" id="facility-address-error"></div>
+                            </div>
+                            <div class="form-group">
+                                <label for="facility-phone">電話番号</label>
+                                <input type="text" id="facility-phone" placeholder="03-1234-5678" maxlength="20">
+                                <div class="form-error" id="facility-phone-error"></div>
+                            </div>
+                            <div class="form-group">
+                                <label for="facility-email">メールアドレス</label>
+                                <input type="email" id="facility-email" placeholder="info@example.com" maxlength="100">
+                                <div class="form-error" id="facility-email-error"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 営業時間設定 -->
+                    <div class="setting-section">
+                        <h4>🕐 営業時間</h4>
+                        <div class="setting-form">
+                            <div class="form-group">
+                                <label for="checkin-time">チェックイン時間</label>
+                                <input type="time" id="checkin-time" value="15:00">
+                                <div class="form-error" id="checkin-time-error"></div>
+                            </div>
+                            <div class="form-group">
+                                <label for="checkout-time">チェックアウト時間</label>
+                                <input type="time" id="checkout-time" value="10:00">
+                                <div class="form-error" id="checkout-time-error"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 表示設定 -->
+                    <div class="setting-section">
+                        <h4>📊 表示設定</h4>
+                        <div class="setting-form">
+                            <div class="form-group">
+                                <label for="default-list-limit">デフォルト一覧表示件数</label>
+                                <select id="default-list-limit">
+                                    <option value="10">10件</option>
+                                    <option value="20">20件</option>
+                                    <option value="50">50件</option>
+                                    <option value="100">100件</option>
+                                    <option value="200">200件</option>
+                                </select>
+                                <div class="form-error" id="default-list-limit-error"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="system-loading" class="loading" style="display: none;">設定を読み込み中...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 部屋編集モーダル -->
+    <div id="room-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 id="room-modal-title">部屋追加</h4>
+                <button class="close" onclick="closeRoomModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="room-form">
+                    <input type="hidden" id="room-id">
+                    <div class="form-group">
+                        <label for="room-number">部屋番号 <span class="required">*</span></label>
+                        <input type="text" id="room-number" required maxlength="10">
+                        <div class="form-error" id="room-number-error"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="room-type-id">部屋タイプ <span class="required">*</span></label>
+                        <select id="room-type-id" required>
+                            <option value="">選択してください</option>
+                        </select>
+                        <div class="form-error" id="room-type-id-error"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="room-group-id">部屋グループ</label>
+                        <select id="room-group-id">
+                            <option value="">選択してください</option>
+                        </select>
+                        <div class="form-error" id="room-group-id-error"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="capacity-adults">定員(大人) <span class="required">*</span></label>
+                        <input type="number" id="capacity-adults" required min="1" max="20" value="2">
+                        <div class="form-error" id="capacity-adults-error"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="capacity-children">定員(子ども)</label>
+                        <input type="number" id="capacity-children" min="0" max="20" value="0">
+                        <div class="form-error" id="capacity-children-error"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="display-order">表示順</label>
+                        <input type="number" id="display-order" min="0" value="0">
+                        <div class="form-error" id="display-order-error"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="room-notes">備考</label>
+                        <textarea id="room-notes" placeholder="備考があれば入力してください"></textarea>
+                        <div class="form-error" id="room-notes-error"></div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeRoomModal()">キャンセル</button>
+                <button class="btn btn-primary" onclick="saveRoom()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 部屋タイプ編集モーダル -->
+    <div id="room-type-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 id="room-type-modal-title">部屋タイプ追加</h4>
+                <button class="close" onclick="closeRoomTypeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="room-type-form">
+                    <input type="hidden" id="room-type-modal-id">
+                    <div class="form-group">
+                        <label for="room-type-name">タイプ名 <span class="required">*</span></label>
+                        <input type="text" id="room-type-name" required maxlength="50">
+                        <div class="form-error" id="room-type-name-error"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="room-type-description">説明</label>
+                        <textarea id="room-type-description" placeholder="部屋タイプの説明を入力してください"></textarea>
+                        <div class="form-error" id="room-type-description-error"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="default-capacity-adults">デフォルト定員(大人) <span class="required">*</span></label>
+                        <input type="number" id="default-capacity-adults" required min="1" max="20" value="2">
+                        <div class="form-error" id="default-capacity-adults-error"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="default-capacity-children">デフォルト定員(子ども)</label>
+                        <input type="number" id="default-capacity-children" min="0" max="20" value="0">
+                        <div class="form-error" id="default-capacity-children-error"></div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeRoomTypeModal()">キャンセル</button>
+                <button class="btn btn-primary" onclick="saveRoomType()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 部屋グループ編集モーダル -->
+    <div id="room-group-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 id="room-group-modal-title">部屋グループ追加</h4>
+                <button class="close" onclick="closeRoomGroupModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="room-group-form">
+                    <input type="hidden" id="room-group-modal-id">
+                    <div class="form-group">
+                        <label for="room-group-name">グループ名 <span class="required">*</span></label>
+                        <input type="text" id="room-group-name" required maxlength="50">
+                        <div class="form-error" id="room-group-name-error"></div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeRoomGroupModal()">キャンセル</button>
+                <button class="btn btn-primary" onclick="saveRoomGroup()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- プラン編集モーダル -->
+    <div id="plan-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 id="plan-modal-title">プラン追加</h4>
+                <button class="close" onclick="closePlanModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="plan-form">
+                    <input type="hidden" id="plan-modal-id">
+                    <div class="form-group">
+                        <label for="plan-name">プラン名 <span class="required">*</span></label>
+                        <input type="text" id="plan-name" required maxlength="100">
+                        <div class="form-error" id="plan-name-error"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="plan-description">説明</label>
+                        <textarea id="plan-description" placeholder="プランの詳細な説明を入力してください" maxlength="1000"></textarea>
+                        <div class="form-error" id="plan-description-error"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="plan-price">基本料金(1名あたり) <span class="required">*</span></label>
+                        <input type="number" id="plan-price" required min="0" max="1000000" step="0.01" value="5000">
+                        <div class="form-error" id="plan-price-error"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="plan-is-active">状態</label>
+                        <select id="plan-is-active">
+                            <option value="1">有効</option>
+                            <option value="0">無効</option>
+                        </select>
+                        <div class="form-error" id="plan-is-active-error"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="plan-display-order">表示順</label>
+                        <input type="number" id="plan-display-order" min="0" value="0">
+                        <div class="form-error" id="plan-display-order-error"></div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closePlanModal()">キャンセル</button>
+                <button class="btn btn-primary" onclick="savePlan()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // グローバル変数
+        let currentRooms = [];
+        let currentRoomTypes = [];
+        let currentRoomGroups = [];
+        let currentPlans = [];
+
+        // ページ読み込み時の初期化
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeTabs();
+            loadInitialData();
+        });
+
+        // タブ機能の初期化
+        function initializeTabs() {
+            const tabHeaders = document.querySelectorAll('.tab-header');
+            const tabContents = document.querySelectorAll('.tab-content');
+
+            tabHeaders.forEach(header => {
+                header.addEventListener('click', function() {
+                    const targetTab = this.dataset.tab;
+                    
+                    // すべてのタブヘッダーからactiveクラスを削除
+                    tabHeaders.forEach(h => h.classList.remove('active'));
+                    // すべてのタブコンテンツを非表示
+                    tabContents.forEach(c => c.classList.remove('active'));
+                    
+                    // クリックされたタブをアクティブに
+                    this.classList.add('active');
+                    document.getElementById(targetTab + '-tab').classList.add('active');
+                    
+                    // タブが切り替わったらデータを読み込み
+                    switch(targetTab) {
+                        case 'rooms':
+                            loadRooms();
+                            break;
+                        case 'room-types':
+                            loadRoomTypes();
+                            break;
+                        case 'room-groups':
+                            loadRoomGroups();
+                            break;
+                        case 'plans':
+                            loadPlans();
+                            break;
+                        case 'system':
+                            loadSystemSettings();
+                            break;
+                    }
+                });
+            });
+        }
+
+        // 初期データの読み込み
+        function loadInitialData() {
+            loadRoomTypes();
+            loadRoomGroups();
+            loadPlans();
+            loadSystemSettings();
+            loadRooms();
+        }
+
+        // =======================================================================
+        // 部屋管理機能
+        // =======================================================================
+
+        // 部屋一覧の読み込み
+        function loadRooms() {
+            showRoomsLoading(true);
+            
+            const params = new URLSearchParams();
+            const groupFilter = document.getElementById('room-group-filter').value;
+            const typeFilter = document.getElementById('room-type-filter').value;
+            const searchText = document.getElementById('room-search').value;
+            
+            if (groupFilter) params.append('group_id', groupFilter);
+            if (typeFilter) params.append('room_type_id', typeFilter);
+            if (searchText) params.append('search', searchText);
+            
+            const url = `/api/settings/rooms.php${params.toString() ? '?' + params.toString() : ''}`;
+            
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    currentRooms = data;
+                    renderRoomsTable(data);
+                    showRoomsLoading(false);
+                })
+                .catch(error => {
+                    console.error('部屋一覧取得エラー:', error);
+                    showError('部屋一覧の取得に失敗しました');
+                    showRoomsLoading(false);
+                });
+        }
+
+        // 部屋テーブルの描画
+        function renderRoomsTable(rooms) {
+            const tbody = document.getElementById('rooms-tbody');
+            const table = document.getElementById('rooms-table');
+            const noData = document.getElementById('rooms-no-data');
+            
+            if (rooms.length === 0) {
+                table.style.display = 'none';
+                noData.style.display = 'block';
+                return;
+            }
+            
+            table.style.display = 'table';
+            noData.style.display = 'none';
+            
+            tbody.innerHTML = rooms.map(room => `
+                <tr>
+                    <td>${escapeHtml(room.room_number)}</td>
+                    <td>${escapeHtml(room.room_type_name || '')}</td>
+                    <td>${escapeHtml(room.group_name || '')}</td>
+                    <td>${room.capacity_adults}</td>
+                    <td>${room.capacity_children}</td>
+                    <td>${room.display_order}</td>
+                    <td>
+                        <div class="actions">
+                            <button class="btn btn-primary btn-sm" onclick="editRoom(${room.id})">編集</button>
+                            <button class="btn btn-danger btn-sm" onclick="deleteRoom(${room.id})">削除</button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // 部屋フィルターのクリア
+        function clearRoomFilters() {
+            document.getElementById('room-group-filter').value = '';
+            document.getElementById('room-type-filter').value = '';
+            document.getElementById('room-search').value = '';
+            loadRooms();
+        }
+
+        // 部屋追加モーダルを開く
+        function openRoomModal(roomId = null) {
+            const modal = document.getElementById('room-modal');
+            const title = document.getElementById('room-modal-title');
+            const form = document.getElementById('room-form');
+            
+            // フォームをリセット
+            form.reset();
+            clearFormErrors();
+            
+            // モーダルタイトルを設定
+            title.textContent = roomId ? '部屋編集' : '部屋追加';
+            
+            // 部屋タイプとグループの選択肢を設定
+            populateRoomTypeSelect('room-type-id');
+            populateRoomGroupSelect('room-group-id');
+            
+            if (roomId) {
+                // 編集モードの場合、データを設定
+                const room = currentRooms.find(r => r.id === roomId);
+                if (room) {
+                    document.getElementById('room-id').value = room.id;
+                    document.getElementById('room-number').value = room.room_number;
+                    document.getElementById('room-type-id').value = room.room_type_id;
+                    document.getElementById('room-group-id').value = room.group_id || '';
+                    document.getElementById('capacity-adults').value = room.capacity_adults;
+                    document.getElementById('capacity-children').value = room.capacity_children;
+                    document.getElementById('display-order').value = room.display_order;
+                    document.getElementById('room-notes').value = room.notes || '';
+                }
+            }
+            
+            modal.style.display = 'block';
+        }
+
+        // 部屋モーダルを閉じる
+        function closeRoomModal() {
+            document.getElementById('room-modal').style.display = 'none';
+        }
+
+        // 部屋の保存
+        function saveRoom() {
+            const roomId = document.getElementById('room-id').value;
+            const isEdit = !!roomId;
+            
+            const data = {
+                room_number: document.getElementById('room-number').value,
+                room_type_id: parseInt(document.getElementById('room-type-id').value),
+                group_id: document.getElementById('room-group-id').value ? parseInt(document.getElementById('room-group-id').value) : null,
+                capacity_adults: parseInt(document.getElementById('capacity-adults').value),
+                capacity_children: parseInt(document.getElementById('capacity-children').value),
+                display_order: parseInt(document.getElementById('display-order').value),
+                notes: document.getElementById('room-notes').value
+            };
+            
+            if (isEdit) {
+                data.id = parseInt(roomId);
+            }
+            
+            const method = isEdit ? 'PUT' : 'POST';
+            
+            fetch('/api/settings/rooms.php', {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    showSuccess(isEdit ? '部屋を更新しました' : '部屋を追加しました');
+                    closeRoomModal();
+                    loadRooms();
+                } else {
+                    showError(result.error || '保存に失敗しました');
+                }
+            })
+            .catch(error => {
+                console.error('部屋保存エラー:', error);
+                showError('保存に失敗しました');
+            });
+        }
+
+        // 部屋の編集
+        function editRoom(roomId) {
+            openRoomModal(roomId);
+        }
+
+        // 部屋の削除
+        function deleteRoom(roomId) {
+            if (!confirm('この部屋を削除しますか？')) {
+                return;
+            }
+            
+            fetch('/api/settings/rooms.php', {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ id: roomId })
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    showSuccess('部屋を削除しました');
+                    loadRooms();
+                } else {
+                    showError(result.error || '削除に失敗しました');
+                }
+            })
+            .catch(error => {
+                console.error('部屋削除エラー:', error);
+                showError('削除に失敗しました');
+            });
+        }
+
+        // =======================================================================
+        // 部屋タイプ管理機能
+        // =======================================================================
+
+        // 部屋タイプ一覧の読み込み
+        function loadRoomTypes() {
+            showRoomTypesLoading(true);
+            
+            fetch('/api/settings/room_types.php')
+                .then(response => response.json())
+                .then(data => {
+                    currentRoomTypes = data;
+                    renderRoomTypesTable(data);
+                    updateRoomTypeFilters();
+                    showRoomTypesLoading(false);
+                })
+                .catch(error => {
+                    console.error('部屋タイプ一覧取得エラー:', error);
+                    showError('部屋タイプ一覧の取得に失敗しました');
+                    showRoomTypesLoading(false);
+                });
+        }
+
+        // 部屋タイプテーブルの描画
+        function renderRoomTypesTable(roomTypes) {
+            const tbody = document.getElementById('room-types-tbody');
+            const table = document.getElementById('room-types-table');
+            const noData = document.getElementById('room-types-no-data');
+            
+            if (roomTypes.length === 0) {
+                table.style.display = 'none';
+                noData.style.display = 'block';
+                return;
+            }
+            
+            table.style.display = 'table';
+            noData.style.display = 'none';
+            
+            tbody.innerHTML = roomTypes.map(type => `
+                <tr>
+                    <td>${escapeHtml(type.name)}</td>
+                    <td>${escapeHtml(type.description || '')}</td>
+                    <td>${type.default_capacity_adults}</td>
+                    <td>${type.default_capacity_children}</td>
+                    <td>
+                        <div class="actions">
+                            <button class="btn btn-primary btn-sm" onclick="editRoomType(${type.id})">編集</button>
+                            <button class="btn btn-danger btn-sm" onclick="deleteRoomType(${type.id})">削除</button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // 部屋タイプ追加モーダルを開く
+        function openRoomTypeModal(typeId = null) {
+            const modal = document.getElementById('room-type-modal');
+            const title = document.getElementById('room-type-modal-title');
+            const form = document.getElementById('room-type-form');
+            
+            form.reset();
+            clearFormErrors();
+            title.textContent = typeId ? '部屋タイプ編集' : '部屋タイプ追加';
+            
+            if (typeId) {
+                const type = currentRoomTypes.find(t => t.id === typeId);
+                if (type) {
+                    document.getElementById('room-type-modal-id').value = type.id;
+                    document.getElementById('room-type-name').value = type.name;
+                    document.getElementById('room-type-description').value = type.description || '';
+                    document.getElementById('default-capacity-adults').value = type.default_capacity_adults;
+                    document.getElementById('default-capacity-children').value = type.default_capacity_children;
+                }
+            }
+            
+            modal.style.display = 'block';
+        }
+
+        // 部屋タイプモーダルを閉じる
+        function closeRoomTypeModal() {
+            document.getElementById('room-type-modal').style.display = 'none';
+        }
+
+        // 部屋タイプの保存
+        function saveRoomType() {
+            const typeId = document.getElementById('room-type-modal-id').value;
+            const isEdit = !!typeId;
+            
+            const data = {
+                name: document.getElementById('room-type-name').value,
+                description: document.getElementById('room-type-description').value,
+                default_capacity_adults: parseInt(document.getElementById('default-capacity-adults').value),
+                default_capacity_children: parseInt(document.getElementById('default-capacity-children').value)
+            };
+            
+            if (isEdit) {
+                data.id = parseInt(typeId);
+            }
+            
+            const method = isEdit ? 'PUT' : 'POST';
+            
+            fetch('/api/settings/room_types.php', {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    showSuccess(isEdit ? '部屋タイプを更新しました' : '部屋タイプを追加しました');
+                    closeRoomTypeModal();
+                    loadRoomTypes();
+                } else {
+                    showError(result.error || '保存に失敗しました');
+                }
+            })
+            .catch(error => {
+                console.error('部屋タイプ保存エラー:', error);
+                showError('保存に失敗しました');
+            });
+        }
+
+        // 部屋タイプの編集
+        function editRoomType(typeId) {
+            openRoomTypeModal(typeId);
+        }
+
+        // 部屋タイプの削除
+        function deleteRoomType(typeId) {
+            if (!confirm('この部屋タイプを削除しますか？')) {
+                return;
+            }
+            
+            fetch('/api/settings/room_types.php', {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ id: typeId })
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    showSuccess('部屋タイプを削除しました');
+                    loadRoomTypes();
+                } else {
+                    showError(result.error || '削除に失敗しました');
+                }
+            })
+            .catch(error => {
+                console.error('部屋タイプ削除エラー:', error);
+                showError('削除に失敗しました');
+            });
+        }
+
+        // =======================================================================
+        // 部屋グループ管理機能
+        // =======================================================================
+
+        // 部屋グループ一覧の読み込み
+        function loadRoomGroups() {
+            showRoomGroupsLoading(true);
+            
+            fetch('/api/settings/room_groups.php')
+                .then(response => response.json())
+                .then(data => {
+                    currentRoomGroups = data;
+                    renderRoomGroupsTable(data);
+                    updateRoomGroupFilters();
+                    showRoomGroupsLoading(false);
+                })
+                .catch(error => {
+                    console.error('部屋グループ一覧取得エラー:', error);
+                    showError('部屋グループ一覧の取得に失敗しました');
+                    showRoomGroupsLoading(false);
+                });
+        }
+
+        // 部屋グループテーブルの描画
+        function renderRoomGroupsTable(roomGroups) {
+            const tbody = document.getElementById('room-groups-tbody');
+            const table = document.getElementById('room-groups-table');
+            const noData = document.getElementById('room-groups-no-data');
+            
+            if (roomGroups.length === 0) {
+                table.style.display = 'none';
+                noData.style.display = 'block';
+                return;
+            }
+            
+            table.style.display = 'table';
+            noData.style.display = 'none';
+            
+            tbody.innerHTML = roomGroups.map(group => `
+                <tr>
+                    <td>${escapeHtml(group.name)}</td>
+                    <td>${formatDate(group.created_at)}</td>
+                    <td>
+                        <div class="actions">
+                            <button class="btn btn-primary btn-sm" onclick="editRoomGroup(${group.id})">編集</button>
+                            <button class="btn btn-danger btn-sm" onclick="deleteRoomGroup(${group.id})">削除</button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // 部屋グループ追加モーダルを開く
+        function openRoomGroupModal(groupId = null) {
+            const modal = document.getElementById('room-group-modal');
+            const title = document.getElementById('room-group-modal-title');
+            const form = document.getElementById('room-group-form');
+            
+            form.reset();
+            clearFormErrors();
+            title.textContent = groupId ? '部屋グループ編集' : '部屋グループ追加';
+            
+            if (groupId) {
+                const group = currentRoomGroups.find(g => g.id === groupId);
+                if (group) {
+                    document.getElementById('room-group-modal-id').value = group.id;
+                    document.getElementById('room-group-name').value = group.name;
+                }
+            }
+            
+            modal.style.display = 'block';
+        }
+
+        // 部屋グループモーダルを閉じる
+        function closeRoomGroupModal() {
+            document.getElementById('room-group-modal').style.display = 'none';
+        }
+
+        // 部屋グループの保存
+        function saveRoomGroup() {
+            const groupId = document.getElementById('room-group-modal-id').value;
+            const isEdit = !!groupId;
+            
+            const data = {
+                name: document.getElementById('room-group-name').value
+            };
+            
+            if (isEdit) {
+                data.id = parseInt(groupId);
+            }
+            
+            const method = isEdit ? 'PUT' : 'POST';
+            
+            fetch('/api/settings/room_groups.php', {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    showSuccess(isEdit ? '部屋グループを更新しました' : '部屋グループを追加しました');
+                    closeRoomGroupModal();
+                    loadRoomGroups();
+                } else {
+                    showError(result.error || '保存に失敗しました');
+                }
+            })
+            .catch(error => {
+                console.error('部屋グループ保存エラー:', error);
+                showError('保存に失敗しました');
+            });
+        }
+
+        // 部屋グループの編集
+        function editRoomGroup(groupId) {
+            openRoomGroupModal(groupId);
+        }
+
+        // 部屋グループの削除
+        function deleteRoomGroup(groupId) {
+            if (!confirm('この部屋グループを削除しますか？')) {
+                return;
+            }
+            
+            fetch('/api/settings/room_groups.php', {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ id: groupId })
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    showSuccess('部屋グループを削除しました');
+                    loadRoomGroups();
+                } else {
+                    showError(result.error || '削除に失敗しました');
+                }
+            })
+            .catch(error => {
+                console.error('部屋グループ削除エラー:', error);
+                showError('削除に失敗しました');
+            });
+        }
+
+        // =======================================================================
+        // プラン管理機能
+        // =======================================================================
+
+        // プラン一覧の読み込み
+        function loadPlans() {
+            showPlansLoading(true);
+            
+            const params = new URLSearchParams();
+            const statusFilter = document.getElementById('plan-status-filter').value;
+            const searchText = document.getElementById('plan-search').value;
+            
+            if (statusFilter !== '') params.append('is_active', statusFilter);
+            if (searchText) params.append('search', searchText);
+            
+            const url = `/api/settings/plans.php${params.toString() ? '?' + params.toString() : ''}`;
+            
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    currentPlans = data;
+                    renderPlansTable(data);
+                    showPlansLoading(false);
+                })
+                .catch(error => {
+                    console.error('プラン一覧取得エラー:', error);
+                    showError('プラン一覧の取得に失敗しました');
+                    showPlansLoading(false);
+                });
+        }
+
+        // プランテーブルの描画
+        function renderPlansTable(plans) {
+            const tbody = document.getElementById('plans-tbody');
+            const table = document.getElementById('plans-table');
+            const noData = document.getElementById('plans-no-data');
+            
+            if (plans.length === 0) {
+                table.style.display = 'none';
+                noData.style.display = 'block';
+                return;
+            }
+            
+            table.style.display = 'table';
+            noData.style.display = 'none';
+            
+            tbody.innerHTML = plans.map(plan => `
+                <tr>
+                    <td>${escapeHtml(plan.name)}</td>
+                    <td>${escapeHtml(plan.description || '')}</td>
+                    <td>¥${formatNumber(plan.price)}</td>
+                    <td>
+                        <span style="color: ${plan.is_active ? '#28a745' : '#dc3545'};">
+                            ${plan.is_active ? '有効' : '無効'}
+                        </span>
+                    </td>
+                    <td>${plan.display_order}</td>
+                    <td>
+                        <div class="actions">
+                            <button class="btn btn-primary btn-sm" onclick="editPlan(${plan.id})">編集</button>
+                            <button class="btn ${plan.is_active ? 'btn-secondary' : 'btn-success'} btn-sm" 
+                                    onclick="togglePlanStatus(${plan.id}, ${plan.is_active ? 0 : 1})">
+                                ${plan.is_active ? '無効化' : '有効化'}
+                            </button>
+                            <button class="btn btn-danger btn-sm" onclick="deletePlan(${plan.id})">削除</button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // プランフィルターのクリア
+        function clearPlanFilters() {
+            document.getElementById('plan-status-filter').value = '';
+            document.getElementById('plan-search').value = '';
+            loadPlans();
+        }
+
+        // プラン追加モーダルを開く
+        function openPlanModal(planId = null) {
+            const modal = document.getElementById('plan-modal');
+            const title = document.getElementById('plan-modal-title');
+            const form = document.getElementById('plan-form');
+            
+            form.reset();
+            clearFormErrors();
+            title.textContent = planId ? 'プラン編集' : 'プラン追加';
+            
+            if (planId) {
+                const plan = currentPlans.find(p => p.id === planId);
+                if (plan) {
+                    document.getElementById('plan-modal-id').value = plan.id;
+                    document.getElementById('plan-name').value = plan.name;
+                    document.getElementById('plan-description').value = plan.description || '';
+                    document.getElementById('plan-price').value = plan.price;
+                    document.getElementById('plan-is-active').value = plan.is_active ? '1' : '0';
+                    document.getElementById('plan-display-order').value = plan.display_order;
+                }
+            }
+            
+            modal.style.display = 'block';
+        }
+
+        // プランモーダルを閉じる
+        function closePlanModal() {
+            document.getElementById('plan-modal').style.display = 'none';
+        }
+
+        // プランの保存
+        function savePlan() {
+            const planId = document.getElementById('plan-modal-id').value;
+            const isEdit = !!planId;
+            
+            const data = {
+                name: document.getElementById('plan-name').value,
+                description: document.getElementById('plan-description').value,
+                price: parseFloat(document.getElementById('plan-price').value),
+                is_active: parseInt(document.getElementById('plan-is-active').value),
+                display_order: parseInt(document.getElementById('plan-display-order').value)
+            };
+            
+            if (isEdit) {
+                data.id = parseInt(planId);
+            }
+            
+            const method = isEdit ? 'PUT' : 'POST';
+            
+            fetch('/api/settings/plans.php', {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    showSuccess(isEdit ? 'プランを更新しました' : 'プランを追加しました');
+                    closePlanModal();
+                    loadPlans();
+                } else {
+                    showError(result.error || '保存に失敗しました');
+                }
+            })
+            .catch(error => {
+                console.error('プラン保存エラー:', error);
+                showError('保存に失敗しました');
+            });
+        }
+
+        // プランの編集
+        function editPlan(planId) {
+            openPlanModal(planId);
+        }
+
+        // プランの状態切り替え（有効/無効）
+        function togglePlanStatus(planId, newStatus) {
+            const statusText = newStatus ? '有効' : '無効';
+            if (!confirm(`このプランを${statusText}にしますか？`)) {
+                return;
+            }
+            
+            fetch('/api/settings/plans.php', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ 
+                    id: planId, 
+                    is_active: newStatus 
+                })
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    showSuccess(`プランを${statusText}にしました`);
+                    loadPlans();
+                } else {
+                    showError(result.error || '更新に失敗しました');
+                }
+            })
+            .catch(error => {
+                console.error('プラン状態更新エラー:', error);
+                showError('更新に失敗しました');
+            });
+        }
+
+        // プランの削除
+        function deletePlan(planId) {
+            if (!confirm('このプランを削除しますか？')) {
+                return;
+            }
+            
+            fetch('/api/settings/plans.php', {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ id: planId })
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    showSuccess('プランを削除しました');
+                    loadPlans();
+                } else {
+                    showError(result.error || '削除に失敗しました');
+                }
+            })
+            .catch(error => {
+                console.error('プラン削除エラー:', error);
+                showError('削除に失敗しました');
+            });
+        }
+
+        // =======================================================================
+        // システム設定機能
+        // =======================================================================
+
+        // システム設定の読み込み
+        function loadSystemSettings() {
+            showSystemLoading(true);
+            
+            fetch('/api/settings/system.php')
+                .then(response => response.json())
+                .then(data => {
+                    populateSystemSettings(data);
+                    showSystemLoading(false);
+                })
+                .catch(error => {
+                    console.error('システム設定取得エラー:', error);
+                    showError('システム設定の取得に失敗しました');
+                    showSystemLoading(false);
+                });
+        }
+
+        // システム設定をフォームに設定
+        function populateSystemSettings(settings) {
+            // 基本情報
+            document.getElementById('facility-name').value = settings.facility_name?.value || '';
+            document.getElementById('facility-address').value = settings.facility_address?.value || '';
+            document.getElementById('facility-phone').value = settings.facility_phone?.value || '';
+            document.getElementById('facility-email').value = settings.facility_email?.value || '';
+            
+            // 営業時間
+            document.getElementById('checkin-time').value = settings.checkin_time?.value || '15:00';
+            document.getElementById('checkout-time').value = settings.checkout_time?.value || '10:00';
+            
+            // 表示設定
+            document.getElementById('default-list-limit').value = settings.default_list_limit?.value || '50';
+        }
+
+        // システム設定の保存
+        function saveSystemSettings() {
+            clearFormErrors();
+            
+            const data = {
+                facility_name: document.getElementById('facility-name').value,
+                facility_address: document.getElementById('facility-address').value,
+                facility_phone: document.getElementById('facility-phone').value,
+                facility_email: document.getElementById('facility-email').value,
+                checkin_time: document.getElementById('checkin-time').value,
+                checkout_time: document.getElementById('checkout-time').value,
+                default_list_limit: document.getElementById('default-list-limit').value
+            };
+
+            // クライアント側バリデーション
+            let hasErrors = false;
+
+            // 施設名は必須
+            if (!data.facility_name.trim()) {
+                showFormError('facility-name-error', '施設名は必須です');
+                hasErrors = true;
+            }
+
+            // 電話番号の形式チェック
+            if (data.facility_phone && !/^[0-9\-\s\(\)]+$/.test(data.facility_phone)) {
+                showFormError('facility-phone-error', '電話番号は数字・ハイフン・括弧のみ入力可能です');
+                hasErrors = true;
+            }
+
+            // メールアドレスの形式チェック
+            if (data.facility_email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.facility_email)) {
+                showFormError('facility-email-error', '正しいメールアドレス形式で入力してください');
+                hasErrors = true;
+            }
+
+            // 時間の妥当性チェック
+            if (data.checkin_time && data.checkout_time) {
+                const checkinMinutes = timeToMinutes(data.checkin_time);
+                const checkoutMinutes = timeToMinutes(data.checkout_time);
+                
+                // チェックアウトがチェックインより遅い場合は翌日として扱う
+                if (checkoutMinutes > checkinMinutes && checkinMinutes > 720) { // 12:00以降
+                    showFormError('checkout-time-error', 'チェックアウト時間が遅すぎます');
+                    hasErrors = true;
+                }
+            }
+
+            if (hasErrors) {
+                return;
+            }
+
+            showSystemLoading(true);
+
+            fetch('/api/settings/system.php', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    showSuccess(`システム設定を更新しました（${result.updated_count}件更新）`);
+                } else {
+                    showError(result.error || 'システム設定の保存に失敗しました');
+                }
+                showSystemLoading(false);
+            })
+            .catch(error => {
+                console.error('システム設定保存エラー:', error);
+                showError('システム設定の保存に失敗しました');
+                showSystemLoading(false);
+            });
+        }
+
+        // 時間を分に変換
+        function timeToMinutes(timeString) {
+            const [hours, minutes] = timeString.split(':').map(Number);
+            return hours * 60 + minutes;
+        }
+
+        // システム設定ローディング表示制御
+        function showSystemLoading(show) {
+            document.getElementById('system-loading').style.display = show ? 'block' : 'none';
+        }
+
+        // フォームエラーの表示
+        function showFormError(elementId, message) {
+            const errorElement = document.getElementById(elementId);
+            if (errorElement) {
+                errorElement.textContent = message;
+            }
+        }
+
+        // =======================================================================
+        // ユーティリティ関数
+        // =======================================================================
+
+        // エラーメッセージの表示
+        function showError(message) {
+            const errorDiv = document.getElementById('error-message');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            document.getElementById('success-message').style.display = 'none';
+            setTimeout(() => {
+                errorDiv.style.display = 'none';
+            }, 5000);
+        }
+
+        // 成功メッセージの表示
+        function showSuccess(message) {
+            const successDiv = document.getElementById('success-message');
+            successDiv.textContent = message;
+            successDiv.style.display = 'block';
+            document.getElementById('error-message').style.display = 'none';
+            setTimeout(() => {
+                successDiv.style.display = 'none';
+            }, 3000);
+        }
+
+        // ローディング表示制御
+        function showRoomsLoading(show) {
+            document.getElementById('rooms-loading').style.display = show ? 'block' : 'none';
+            document.getElementById('rooms-table').style.display = show ? 'none' : 'table';
+            document.getElementById('rooms-no-data').style.display = 'none';
+        }
+
+        function showRoomTypesLoading(show) {
+            document.getElementById('room-types-loading').style.display = show ? 'block' : 'none';
+            document.getElementById('room-types-table').style.display = show ? 'none' : 'table';
+            document.getElementById('room-types-no-data').style.display = 'none';
+        }
+
+        function showRoomGroupsLoading(show) {
+            document.getElementById('room-groups-loading').style.display = show ? 'block' : 'none';
+            document.getElementById('room-groups-table').style.display = show ? 'none' : 'table';
+            document.getElementById('room-groups-no-data').style.display = 'none';
+        }
+
+        function showPlansLoading(show) {
+            document.getElementById('plans-loading').style.display = show ? 'block' : 'none';
+            document.getElementById('plans-table').style.display = show ? 'none' : 'table';
+            document.getElementById('plans-no-data').style.display = 'none';
+        }
+
+        // フォームエラーのクリア
+        function clearFormErrors() {
+            document.querySelectorAll('.form-error').forEach(error => {
+                error.textContent = '';
+            });
+        }
+
+        // HTMLエスケープ
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // 日付のフォーマット
+        function formatDate(dateString) {
+            if (!dateString) return '';
+            const date = new Date(dateString);
+            return date.getFullYear() + '/' + 
+                   String(date.getMonth() + 1).padStart(2, '0') + '/' + 
+                   String(date.getDate()).padStart(2, '0');
+        }
+
+        // 数値のフォーマット（カンマ区切り）
+        function formatNumber(number) {
+            if (number === null || number === undefined) return '';
+            return Number(number).toLocaleString();
+        }
+
+        // 部屋タイプ選択肢の更新
+        function populateRoomTypeSelect(selectId) {
+            const select = document.getElementById(selectId);
+            const currentValue = select.value;
+            
+            // 既存のオプションをクリア（最初のオプションは残す）
+            while (select.children.length > 1) {
+                select.removeChild(select.lastChild);
+            }
+            
+            // 部屋タイプオプションを追加
+            currentRoomTypes.forEach(type => {
+                const option = document.createElement('option');
+                option.value = type.id;
+                option.textContent = type.name;
+                select.appendChild(option);
+            });
+            
+            // 値を復元
+            select.value = currentValue;
+        }
+
+        // 部屋グループ選択肢の更新
+        function populateRoomGroupSelect(selectId) {
+            const select = document.getElementById(selectId);
+            const currentValue = select.value;
+            
+            // 既存のオプションをクリア（最初のオプションは残す）
+            while (select.children.length > 1) {
+                select.removeChild(select.lastChild);
+            }
+            
+            // 部屋グループオプションを追加
+            currentRoomGroups.forEach(group => {
+                const option = document.createElement('option');
+                option.value = group.id;
+                option.textContent = group.name;
+                select.appendChild(option);
+            });
+            
+            // 値を復元
+            select.value = currentValue;
+        }
+
+        // フィルター用の選択肢更新
+        function updateRoomTypeFilters() {
+            populateRoomTypeSelect('room-type-filter');
+        }
+
+        function updateRoomGroupFilters() {
+            populateRoomGroupSelect('room-group-filter');
+        }
+
+        // モーダル外クリックで閉じる
+        window.addEventListener('click', function(event) {
+            const modals = ['room-modal', 'room-type-modal', 'room-group-modal', 'plan-modal'];
+            modals.forEach(modalId => {
+                const modal = document.getElementById(modalId);
+                if (event.target === modal) {
+                    modal.style.display = 'none';
+                }
+            });
+        });
+    </script>
+</body>
+</html> 

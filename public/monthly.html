@@ -1,0 +1,1277 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>月間ビュー - 予約管理システム</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Hiragino Sans', 'Yu Gothic UI', 'Meiryo', sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+            overflow-x: auto;
+        }
+
+        .header {
+            background: #2c3e50;
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 24px;
+        }
+
+        .header .nav {
+            display: flex;
+            gap: 20px;
+        }
+
+        .header .nav a {
+            color: white;
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+
+        .header .nav a:hover,
+        .header .nav a.active {
+            background-color: rgba(255,255,255,0.2);
+        }
+
+        .container {
+            display: flex;
+            height: calc(100vh - 80px);
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .controls {
+            background: white;
+            padding: 20px;
+            border-bottom: 1px solid #dee2e6;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .control-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .view-tabs {
+            display: flex;
+            gap: 5px;
+        }
+
+        .tab-btn {
+            padding: 8px 16px;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .tab-btn.active {
+            background: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+
+        .month-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .month-btn {
+            padding: 8px 12px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .month-btn:hover {
+            background: #0056b3;
+        }
+
+        .current-month {
+            font-size: 18px;
+            font-weight: bold;
+            color: #2c3e50;
+            min-width: 120px;
+            text-align: center;
+        }
+
+        .filters {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .filter-group label {
+            font-size: 12px;
+            color: #666;
+            font-weight: bold;
+        }
+
+        .filter-group select,
+        .filter-group input {
+            padding: 6px 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .calendar-container {
+            flex: 1;
+            overflow: auto;
+            background: white;
+        }
+
+        .calendar-grid {
+            display: grid;
+            min-width: 1400px;
+            border: 1px solid #dee2e6;
+            font-size: 12px;
+        }
+
+        .calendar-header {
+            display: contents;
+        }
+
+        .room-header {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 10px;
+            font-weight: bold;
+            position: sticky;
+            left: 0;
+            z-index: 10;
+            min-width: 200px;
+            border-right: 2px solid #007bff;
+        }
+
+        .date-header {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 8px 4px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 12px;
+            min-width: 80px;
+            position: sticky;
+            top: 0;
+            z-index: 5;
+        }
+
+        .date-header.weekend {
+            background: #ffe6e6;
+        }
+
+        .date-header.holiday {
+            background: #ffdddd;
+            color: #dc3545;
+        }
+
+        .calendar-row {
+            display: contents;
+        }
+
+        .room-cell {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 10px;
+            position: sticky;
+            left: 0;
+            z-index: 9;
+            display: flex;
+            flex-direction: column;
+            min-width: 200px;
+            border-right: 2px solid #007bff;
+        }
+
+        .room-name {
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .room-type {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .room-capacity {
+            font-size: 11px;
+            color: #999;
+        }
+
+        .day-cell {
+            border: 1px solid #dee2e6;
+            min-height: 80px;
+            min-width: 100px;
+            padding: 0;
+            position: relative;
+            background: #fff;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .day-cell.weekend {
+            background: #fafafa;
+        }
+
+        .day-cell.today {
+            background: #e3f2fd;
+            border-color: #2196f3;
+        }
+
+        .upper-area {
+            flex: 1;
+            min-height: 35px;
+            padding: 2px;
+            border-bottom: 1px dashed #ccc;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .lower-area {
+            flex: 1;
+            min-height: 35px;
+            padding: 2px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .reservation-block {
+            background: #28a745;
+            color: white;
+            padding: 3px 6px;
+            margin: 1px 0;
+            border-radius: 4px;
+            font-size: 11px;
+            line-height: 1.3;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+            min-height: 30px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .reservation-block.spanning {
+            position: absolute;
+            z-index: 10;
+            white-space: nowrap;
+            left: 0;
+            right: 0;
+            border-radius: 4px;
+            background: #28a745;
+            color: white;
+            padding: 3px 6px;
+            margin: 1px 0;
+            font-size: 11px;
+            line-height: 1.3;
+            cursor: pointer;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+            min-height: 30px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .reservation-block.single-day {
+            /* 1日のみの予約は通常表示 */
+        }
+
+        .reservation-span-container {
+            position: relative;
+            height: 35px;
+            margin: 1px 0;
+        }
+
+        .reservation-placeholder {
+            min-height: 30px;
+            background: transparent;
+            border: 1px dashed rgba(40,167,69,0.3);
+            margin: 1px 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            color: #666;
+        }
+
+        .reservation-block .customer-name {
+            font-weight: bold;
+            font-size: 12px;
+            margin-bottom: 2px;
+        }
+
+        .reservation-block .plan-info {
+            font-size: 9px;
+            opacity: 0.9;
+        }
+
+        .reservation-block .stay-info {
+            font-size: 8px;
+            opacity: 0.8;
+            margin-top: 1px;
+        }
+
+        .reservation-block.unassigned {
+            background: #6c757d;
+        }
+
+        .reservation-block.checkin {
+            background: #007bff;
+            border-left: 4px solid #0056b3;
+        }
+
+        .reservation-block.staying {
+            background: #28a745;
+            border-left: 4px solid #1e7e34;
+        }
+
+        .reservation-block.checkout {
+            background: #ffc107;
+            color: #000;
+            border-left: 4px solid #e0a800;
+        }
+
+        .reservation-block.unpaid {
+            background: #dc3545;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+
+        .reservation-block:hover {
+            transform: scale(1.05);
+            z-index: 100;
+            white-space: normal;
+            min-height: 20px;
+        }
+
+        .unassigned-drawer {
+            width: 300px;
+            background: white;
+            border-left: 1px solid #dee2e6;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .drawer-header {
+            background: #f8f9fa;
+            padding: 15px;
+            border-bottom: 1px solid #dee2e6;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .drawer-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        .unassigned-item {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 4px;
+            padding: 10px;
+            margin-bottom: 10px;
+            cursor: move;
+            transition: all 0.3s;
+        }
+
+        .unassigned-item:hover {
+            transform: translateX(-5px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .unassigned-item.dragging {
+            opacity: 0.5;
+        }
+
+        .unassigned-name {
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+
+        .unassigned-details {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .reservation-tooltip {
+            position: absolute;
+            background: linear-gradient(135deg, #2c3e50, #34495e);
+            color: white;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            z-index: 1000;
+            pointer-events: none;
+            white-space: nowrap;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.1);
+            max-width: 300px;
+            white-space: normal;
+        }
+
+        .reservation-tooltip .tooltip-header {
+            font-weight: bold;
+            font-size: 14px;
+            margin-bottom: 6px;
+            color: #3498db;
+        }
+
+        .reservation-tooltip .tooltip-section {
+            margin-bottom: 4px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .reservation-tooltip .tooltip-label {
+            font-weight: 500;
+            color: #bdc3c7;
+        }
+
+        .reservation-tooltip .tooltip-value {
+            color: #ecf0f1;
+        }
+
+        /* レスポンシブ対応 */
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+
+            .unassigned-drawer {
+                width: 100%;
+                max-height: 200px;
+                border-left: none;
+                border-top: 1px solid #dee2e6;
+            }
+
+            .control-row {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .filters {
+                flex-direction: column;
+            }
+
+            .calendar-grid {
+                min-width: 1000px;
+            }
+
+            .room-header,
+            .room-cell {
+                min-width: 150px;
+            }
+
+            .date-header,
+            .day-cell {
+                min-width: 80px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🏨 予約管理システム</h1>
+        <nav class="nav">
+            <a href="/">新規予約</a>
+            <a href="/admin">予約一覧</a>
+            <a href="/monthly" class="active">月間ビュー</a>
+            <a href="/daily">日間ビュー</a>
+            <a href="/settings">設定</a>
+        </nav>
+    </div>
+
+    <div class="container">
+        <div class="main-content">
+            <div class="controls">
+                <div class="control-row">
+                    <div class="view-tabs">
+                        <button class="tab-btn active" data-view="room">部屋（月）</button>
+                        <button class="tab-btn" data-view="type">タイプ（月）</button>
+                        <button class="tab-btn" data-view="daily">お部屋（日）</button>
+                    </div>
+
+                    <div class="month-controls">
+                        <button class="month-btn" id="prev-month">前月</button>
+                        <div class="current-month" id="current-month">2025年8月</div>
+                        <button class="month-btn" id="next-month">翌月</button>
+                    </div>
+                </div>
+
+                <div class="control-row">
+                    <div class="filters">
+                        <div class="filter-group">
+                            <label>グループ</label>
+                            <select id="group-filter">
+                                <option value="">すべて</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label>キーワード</label>
+                            <input type="text" id="keyword-filter" placeholder="プラン名等">
+                        </div>
+                        <div class="filter-group">
+                            <label>予約移動</label>
+                            <input type="text" id="reservation-move" placeholder="予約番号">
+                        </div>
+                        <div class="filter-group">
+                            <label>&nbsp;</label>
+                            <button class="month-btn" onclick="loadMonthlyData()">更新</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="calendar-container">
+                <div id="loading" class="loading">読み込み中...</div>
+                <div id="error" class="error" style="display: none;"></div>
+                <div id="calendar-grid" class="calendar-grid" style="display: none;"></div>
+            </div>
+        </div>
+
+        <div class="unassigned-drawer">
+            <div class="drawer-header">
+                📋 未割当予約 (<span id="unassigned-count">0</span>件)
+            </div>
+            <div class="drawer-content" id="unassigned-list">
+                <div class="empty-state">未割当の予約はありません</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="reservation-tooltip" id="tooltip" style="display: none;"></div>
+
+    <script>
+        // グローバル変数
+        let currentYear = new Date().getFullYear();
+        let currentMonth = new Date().getMonth() + 1;
+        let currentViewType = 'room';
+        let monthlyData = null;
+        let roomGroups = [];
+
+        // ページ読み込み時の初期化
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeControls();
+            loadRoomGroups();
+            loadMonthlyData();
+        });
+
+        // コントロールの初期化
+        function initializeControls() {
+            // タブ切り替え
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    currentViewType = this.dataset.view;
+                    loadMonthlyData();
+                });
+            });
+
+            // 月切り替え
+            document.getElementById('prev-month').addEventListener('click', function() {
+                if (currentMonth === 1) {
+                    currentMonth = 12;
+                    currentYear--;
+                } else {
+                    currentMonth--;
+                }
+                updateMonthDisplay();
+                loadMonthlyData();
+            });
+
+            document.getElementById('next-month').addEventListener('click', function() {
+                if (currentMonth === 12) {
+                    currentMonth = 1;
+                    currentYear++;
+                } else {
+                    currentMonth++;
+                }
+                updateMonthDisplay();
+                loadMonthlyData();
+            });
+
+            // フィルター変更時の自動更新
+            document.getElementById('group-filter').addEventListener('change', loadMonthlyData);
+            document.getElementById('keyword-filter').addEventListener('input', debounce(loadMonthlyData, 500));
+
+            updateMonthDisplay();
+        }
+
+        // 月表示の更新
+        function updateMonthDisplay() {
+            const monthNames = ['1月', '2月', '3月', '4月', '5月', '6月',
+                               '7月', '8月', '9月', '10月', '11月', '12月'];
+            document.getElementById('current-month').textContent = 
+                `${currentYear}年${monthNames[currentMonth - 1]}`;
+        }
+
+        // 部屋グループの読み込み
+        function loadRoomGroups() {
+            fetch('/api/room_groups.php')
+                .then(response => response.json())
+                .then(data => {
+                    roomGroups = data;
+                    updateGroupFilter();
+                })
+                .catch(error => {
+                    console.error('部屋グループ取得エラー:', error);
+                });
+        }
+
+        // グループフィルターの更新
+        function updateGroupFilter() {
+            const select = document.getElementById('group-filter');
+            select.innerHTML = '<option value="">すべて</option>';
+            
+            roomGroups.forEach(group => {
+                const option = document.createElement('option');
+                option.value = group.id;
+                option.textContent = group.name;
+                select.appendChild(option);
+            });
+        }
+
+        // 月間データの読み込み
+        function loadMonthlyData() {
+            showLoading(true);
+            hideError();
+
+            const params = new URLSearchParams({
+                year: currentYear,
+                month: currentMonth,
+                view_type: currentViewType
+            });
+
+            const groupId = document.getElementById('group-filter').value;
+            if (groupId) {
+                params.append('group_id', groupId);
+            }
+
+            const keyword = document.getElementById('keyword-filter').value.trim();
+            if (keyword) {
+                params.append('keyword', keyword);
+            }
+
+            fetch(`/api/monthly_view.php?${params.toString()}`)
+                .then(response => response.json())
+                .then(data => {
+                    monthlyData = data;
+                    renderCalendar(data);
+                    renderUnassignedReservations(data.unassigned_reservations);
+                    showLoading(false);
+                })
+                .catch(error => {
+                    console.error('月間データ取得エラー:', error);
+                    showError('データの取得に失敗しました');
+                    showLoading(false);
+                });
+        }
+
+        // カレンダーの描画
+        function renderCalendar(data) {
+            const grid = document.getElementById('calendar-grid');
+            grid.innerHTML = '';
+            
+            if (!data.rooms || data.rooms.length === 0) {
+                grid.innerHTML = '<div class="empty-state">表示する部屋がありません</div>';
+                grid.style.display = 'block';
+                return;
+            }
+
+            // グリッドの列数を設定（部屋名列 + 日数）
+            grid.style.gridTemplateColumns = `200px repeat(${data.total_days}, 100px)`;
+
+            // ヘッダー行を作成
+            createCalendarHeader(grid, data);
+
+            // 各部屋の行を作成
+            data.rooms.forEach(room => {
+                createRoomRow(grid, room, data);
+            });
+
+            grid.style.display = 'grid';
+        }
+
+        // カレンダーヘッダーの作成
+        function createCalendarHeader(grid, data) {
+            // 部屋名ヘッダー
+            const roomHeader = document.createElement('div');
+            roomHeader.className = 'room-header';
+            roomHeader.textContent = '部屋';
+            grid.appendChild(roomHeader);
+
+            // 日付ヘッダー
+            for (let day = 1; day <= data.total_days; day++) {
+                const date = new Date(data.year, data.month - 1, day);
+                const dayOfWeek = ['日', '月', '火', '水', '木', '金', '土'][date.getDay()];
+                
+                const dateHeader = document.createElement('div');
+                dateHeader.className = 'date-header';
+                
+                if (date.getDay() === 0 || date.getDay() === 6) {
+                    dateHeader.classList.add('weekend');
+                }
+                
+                // 今日の日付をハイライト
+                const today = new Date();
+                if (date.toDateString() === today.toDateString()) {
+                    dateHeader.classList.add('today');
+                }
+                
+                dateHeader.innerHTML = `${data.month}/${day}<br/><small>(${dayOfWeek})</small>`;
+                grid.appendChild(dateHeader);
+            }
+        }
+
+        // 部屋行の作成
+        function createRoomRow(grid, room, data) {
+            // 部屋名セル
+            const roomCell = document.createElement('div');
+            roomCell.className = 'room-cell';
+            roomCell.innerHTML = `
+                <div class="room-name">${escapeHtml(room.room_number)}</div>
+                <div class="room-type">${escapeHtml(room.room_type_name || '')}</div>
+                <div class="room-capacity">定員: ${room.capacity_adults + room.capacity_children}名</div>
+            `;
+            grid.appendChild(roomCell);
+
+            // 日付セル
+            const roomCalendar = data.calendar_data[room.id];
+            if (roomCalendar) {
+                for (let day = 1; day <= data.total_days; day++) {
+                    const dayData = roomCalendar.days[day];
+                    const dayCell = createDayCell(dayData, room, day);
+                    grid.appendChild(dayCell);
+                }
+            } else {
+                // データがない場合は空のセルで埋める
+                for (let day = 1; day <= data.total_days; day++) {
+                    const dayCell = document.createElement('div');
+                    dayCell.className = 'day-cell';
+                    grid.appendChild(dayCell);
+                }
+            }
+        }
+
+        // 日付セルの作成
+        function createDayCell(dayData, room, day) {
+            const dayCell = document.createElement('div');
+            dayCell.className = 'day-cell';
+            
+            // 週末の背景色
+            const date = new Date(currentYear, currentMonth - 1, day);
+            if (date.getDay() === 0 || date.getDay() === 6) {
+                dayCell.classList.add('weekend');
+            }
+            
+            // 今日の日付をハイライト
+            const today = new Date();
+            if (date.toDateString() === today.toDateString()) {
+                dayCell.classList.add('today');
+            }
+
+            // 上エリア（1番目、3番目の予約用）
+            const upperArea = document.createElement('div');
+            upperArea.className = 'upper-area';
+            
+            // 下エリア（2番目、4番目の予約用）
+            const lowerArea = document.createElement('div');
+            lowerArea.className = 'lower-area';
+
+            // 予約ブロックを配置（横跨ぎブロック対応）
+            if (dayData && dayData.reservations) {
+                // この日にある予約のリストを取得
+                const reservationsOnThisDay = dayData.reservations;
+                
+                // 同じ日の予約IDを重複除去してソート
+                const uniqueReservationIds = [...new Set(reservationsOnThisDay.map(r => r.id))].sort();
+                
+                reservationsOnThisDay.forEach(reservation => {
+                    const reservationIndex = uniqueReservationIds.indexOf(reservation.id);
+                    const targetArea = reservationIndex % 2 === 0 ? upperArea : lowerArea;
+                    
+                    if (reservation.checkin_date === dayData.date) {
+                        // チェックイン日：ブロックを作成
+                        const nights = calculateNights(reservation.checkin_date, reservation.checkout_date);
+                        
+                        if (nights > 1) {
+                            // 複数日：横跨ぎブロックを作成
+                            const spanContainer = createSpanningReservationBlock(reservation, room, day);
+                            targetArea.appendChild(spanContainer);
+                        } else {
+                            // 1日のみ：通常ブロックを作成
+                            const block = createSingleDayReservationBlock(reservation, dayData.date);
+                            targetArea.appendChild(block);
+                        }
+                    } else if (reservation.checkout_date !== dayData.date) {
+                        // 中間日のみ：プレースホルダーを配置（チェックアウト日は除く）
+                        const placeholder = createReservationPlaceholder(reservation);
+                        targetArea.appendChild(placeholder);
+                    }
+                    // チェックアウト日は何も配置しない
+                });
+            }
+
+            dayCell.appendChild(upperArea);
+            dayCell.appendChild(lowerArea);
+
+            // ドロップ可能エリアとして設定
+            setupDropZone(dayCell, room, dayData?.date);
+
+            return dayCell;
+        }
+
+        // 予約の状態を日付に応じて判定
+        function getReservationStatusForDate(reservation, date) {
+            if (reservation.checkin_date === date) {
+                return 'checkin';
+            } else if (reservation.checkout_date === date) {
+                return 'checkout';
+            } else if (date > reservation.checkin_date && date < reservation.checkout_date) {
+                return 'staying';
+            }
+            return 'staying'; // デフォルト
+        }
+
+
+
+        // 横跨ぎ予約ブロックの作成
+        function createSpanningReservationBlock(reservation, room, startDay) {
+            const container = document.createElement('div');
+            container.className = 'reservation-span-container';
+            
+            const block = document.createElement('div');
+            block.className = 'reservation-block spanning';
+            
+            // データ属性を追加
+            block.dataset.reservationId = reservation.id;
+            block.dataset.startDate = reservation.checkin_date;
+            block.dataset.endDate = reservation.checkout_date;
+            
+            // 状態に応じたクラス設定
+            const status = getReservationStatusForDate(reservation, reservation.checkin_date);
+            block.classList.add(status);
+            
+            if (reservation.reservation_status === 'unassigned') {
+                block.classList.add('unassigned');
+            }
+            
+            if (reservation.payment_status === 'unpaid') {
+                block.classList.add('unpaid');
+            }
+
+            // 宿泊日数を計算
+            const nights = calculateNights(reservation.checkin_date, reservation.checkout_date);
+            const totalGuests = reservation.adults + reservation.children;
+            
+            // ブロックの幅を計算（100px × 表示日数）
+            // チェックアウト日は表示しないので、nights（泊数）と同じ日数
+            const cellWidth = 100; // CSSで定義したセル幅
+            const displayDays = nights; // 表示する日数 = 宿泊日数
+            const blockWidth = cellWidth * displayDays;
+            block.style.width = `${blockWidth}px`;
+
+            // 表示内容を作成
+            const customerName = document.createElement('div');
+            customerName.className = 'customer-name';
+            customerName.textContent = reservation.customer_name;
+
+            const details = document.createElement('div');
+            details.className = 'plan-info';
+            details.textContent = `${reservation.plan_name} | IN ${totalGuests}名 (${nights}泊)`;
+
+            block.appendChild(customerName);
+            block.appendChild(details);
+
+            // クリックイベント
+            block.addEventListener('click', function(e) {
+                e.stopPropagation();
+                showReservationDetails(reservation);
+            });
+
+            // ツールチップ
+            setupTooltip(block, reservation, status);
+
+            container.appendChild(block);
+            return container;
+        }
+
+        // 1日のみの予約ブロック作成
+        function createSingleDayReservationBlock(reservation, date) {
+            const block = document.createElement('div');
+            block.className = 'reservation-block single-day';
+            
+            // データ属性を追加
+            block.dataset.reservationId = reservation.id;
+            block.dataset.startDate = reservation.checkin_date;
+            block.dataset.endDate = reservation.checkout_date;
+            
+            // 状態に応じたクラス設定
+            const status = getReservationStatusForDate(reservation, date);
+            block.classList.add(status);
+            
+            if (reservation.reservation_status === 'unassigned') {
+                block.classList.add('unassigned');
+            }
+            
+            if (reservation.payment_status === 'unpaid') {
+                block.classList.add('unpaid');
+            }
+
+            // 表示内容の構築
+            const customerName = document.createElement('div');
+            customerName.className = 'customer-name';
+            customerName.textContent = reservation.customer_name;
+
+            const planInfo = document.createElement('div');
+            planInfo.className = 'plan-info';
+            planInfo.textContent = reservation.plan_name;
+
+            const stayInfo = document.createElement('div');
+            stayInfo.className = 'stay-info';
+            const totalGuests = reservation.adults + reservation.children;
+            stayInfo.textContent = `${totalGuests}名`;
+
+            block.appendChild(customerName);
+            block.appendChild(planInfo);
+            block.appendChild(stayInfo);
+
+            // クリックイベント
+            block.addEventListener('click', function(e) {
+                e.stopPropagation();
+                showReservationDetails(reservation);
+            });
+
+            // ツールチップ
+            setupTooltip(block, reservation, status);
+
+            return block;
+        }
+
+        // プレースホルダーの作成
+        function createReservationPlaceholder(reservation) {
+            const placeholder = document.createElement('div');
+            placeholder.className = 'reservation-placeholder';
+            placeholder.dataset.reservationId = reservation.id;
+            placeholder.textContent = ''; // 空のプレースホルダー
+            return placeholder;
+        }
+
+
+
+        // 未割当予約の描画
+        function renderUnassignedReservations(reservations) {
+            const container = document.getElementById('unassigned-list');
+            const count = document.getElementById('unassigned-count');
+            
+            count.textContent = reservations.length;
+            
+            if (reservations.length === 0) {
+                container.innerHTML = '<div class="empty-state">未割当の予約はありません</div>';
+                return;
+            }
+
+            container.innerHTML = '';
+            reservations.forEach(reservation => {
+                const item = createUnassignedItem(reservation);
+                container.appendChild(item);
+            });
+        }
+
+        // 未割当アイテムの作成
+        function createUnassignedItem(reservation) {
+            const item = document.createElement('div');
+            item.className = 'unassigned-item';
+            item.draggable = true;
+            item.dataset.reservationId = reservation.id;
+            
+            const nights = calculateNights(reservation.checkin_date, reservation.checkout_date);
+            
+            item.innerHTML = `
+                <div class="unassigned-name">${escapeHtml(reservation.customer_name)}</div>
+                <div class="unassigned-details">
+                    ${escapeHtml(reservation.plan_name)}<br/>
+                    ${formatDate(reservation.checkin_date)}〜${formatDate(reservation.checkout_date)} (${nights}泊)<br/>
+                    ${reservation.adults + reservation.children}名
+                </div>
+            `;
+
+            // ドラッグイベント
+            setupDragEvents(item, reservation);
+
+            return item;
+        }
+
+        // ドロップゾーンの設定
+        function setupDropZone(dayCell, room, date) {
+            dayCell.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                this.style.backgroundColor = '#e3f2fd';
+            });
+
+            dayCell.addEventListener('dragleave', function(e) {
+                this.style.backgroundColor = '';
+            });
+
+            dayCell.addEventListener('drop', function(e) {
+                e.preventDefault();
+                this.style.backgroundColor = '';
+                
+                const reservationId = e.dataTransfer.getData('text/plain');
+                assignReservationToRoom(reservationId, room.id, date);
+            });
+        }
+
+        // ドラッグイベントの設定
+        function setupDragEvents(item, reservation) {
+            item.addEventListener('dragstart', function(e) {
+                e.dataTransfer.setData('text/plain', reservation.id);
+                this.classList.add('dragging');
+            });
+
+            item.addEventListener('dragend', function(e) {
+                this.classList.remove('dragging');
+            });
+        }
+
+        // ツールチップの設定
+        function setupTooltip(element, reservation, status) {
+            const tooltip = document.getElementById('tooltip');
+            
+            element.addEventListener('mouseenter', function(e) {
+                const nights = calculateNights(reservation.checkin_date, reservation.checkout_date);
+                const checkInTime = '15:00'; // システム設定から取得予定
+                const checkOutTime = '10:00'; // システム設定から取得予定
+                
+                const statusText = getDetailedStatusText(reservation, status);
+                const paymentText = reservation.payment_status === 'unpaid' ? '未払い' : 
+                                  reservation.payment_status === 'paid' ? '支払済' : '部分支払';
+                
+                tooltip.innerHTML = `
+                    <div class="tooltip-header">${escapeHtml(reservation.customer_name)}さま</div>
+                    <div class="tooltip-section">
+                        <span class="tooltip-label">プラン:</span>
+                        <span class="tooltip-value">${escapeHtml(reservation.plan_name)}</span>
+                    </div>
+                    <div class="tooltip-section">
+                        <span class="tooltip-label">期間:</span>
+                        <span class="tooltip-value">${formatDateJP(reservation.checkin_date)}〜${formatDateJP(reservation.checkout_date)}</span>
+                    </div>
+                    <div class="tooltip-section">
+                        <span class="tooltip-label">宿泊:</span>
+                        <span class="tooltip-value">${nights}泊 ${reservation.adults + reservation.children}名</span>
+                    </div>
+                    <div class="tooltip-section">
+                        <span class="tooltip-label">人数:</span>
+                        <span class="tooltip-value">大人${reservation.adults}名 子供${reservation.children}名</span>
+                    </div>
+                    <div class="tooltip-section">
+                        <span class="tooltip-label">料金:</span>
+                        <span class="tooltip-value">¥${formatNumber(reservation.price)}</span>
+                    </div>
+                    <div class="tooltip-section">
+                        <span class="tooltip-label">支払:</span>
+                        <span class="tooltip-value">${paymentText}</span>
+                    </div>
+                    <div class="tooltip-section">
+                        <span class="tooltip-label">状態:</span>
+                        <span class="tooltip-value">${statusText}</span>
+                    </div>
+                    ${reservation.customer_phone ? `<div class="tooltip-section">
+                        <span class="tooltip-label">電話:</span>
+                        <span class="tooltip-value">${escapeHtml(reservation.customer_phone)}</span>
+                    </div>` : ''}
+                    ${reservation.notes ? `<div class="tooltip-section">
+                        <span class="tooltip-label">備考:</span>
+                        <span class="tooltip-value">${escapeHtml(reservation.notes)}</span>
+                    </div>` : ''}
+                `;
+                tooltip.style.display = 'block';
+                updateTooltipPosition(e);
+            });
+
+            element.addEventListener('mouseleave', function() {
+                tooltip.style.display = 'none';
+            });
+
+            element.addEventListener('mousemove', updateTooltipPosition);
+        }
+
+        // ツールチップ位置の更新
+        function updateTooltipPosition(e) {
+            const tooltip = document.getElementById('tooltip');
+            tooltip.style.left = (e.pageX + 10) + 'px';
+            tooltip.style.top = (e.pageY - 10) + 'px';
+        }
+
+        // 予約を部屋に割り当て
+        function assignReservationToRoom(reservationId, roomId, date) {
+            // ここで予約割り当てAPIを呼び出す
+            console.log(`予約 ${reservationId} を部屋 ${roomId} に割り当て (日付: ${date})`);
+            // 実装予定: API呼び出し後にデータを再読み込み
+            alert('予約割り当て機能は実装予定です');
+        }
+
+        // 予約詳細の表示
+        function showReservationDetails(reservation) {
+            // 予約詳細モーダルまたはページへの遷移
+            console.log('予約詳細:', reservation);
+            alert(`予約詳細\n\n顧客: ${reservation.customer_name}\nプラン: ${reservation.plan_name}\n期間: ${reservation.checkin_date}〜${reservation.checkout_date}`);
+        }
+
+        // ユーティリティ関数
+        function showLoading(show) {
+            document.getElementById('loading').style.display = show ? 'block' : 'none';
+            document.getElementById('calendar-grid').style.display = show ? 'none' : 'grid';
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('error');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+
+        function hideError() {
+            document.getElementById('error').style.display = 'none';
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function formatDate(dateString) {
+            if (!dateString) return '';
+            const date = new Date(dateString);
+            return `${date.getMonth() + 1}/${date.getDate()}`;
+        }
+
+        function formatNumber(number) {
+            if (number === null || number === undefined) return '';
+            return Number(number).toLocaleString();
+        }
+
+        function calculateNights(checkinDate, checkoutDate) {
+            const checkin = new Date(checkinDate);
+            const checkout = new Date(checkoutDate);
+            const diffTime = checkout - checkin;
+            return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        }
+
+        function getStatusText(reservation) {
+            const statusMap = {
+                'unassigned': '未割当',
+                'assigned': '割当済',
+                'checked_in': 'チェックイン済',
+                'checked_out': 'チェックアウト済',
+                'cancelled': 'キャンセル'
+            };
+            return statusMap[reservation.reservation_status] || reservation.reservation_status;
+        }
+
+        function getDetailedStatusText(reservation, status) {
+            const baseStatus = getStatusText(reservation);
+            const dateStatus = {
+                'checkin': 'チェックイン日',
+                'staying': '滞在中',
+                'checkout': 'チェックアウト日'
+            };
+            return `${baseStatus} (${dateStatus[status] || status})`;
+        }
+
+        function formatDateJP(dateString) {
+            if (!dateString) return '';
+            const date = new Date(dateString);
+            return `${date.getMonth() + 1}月${date.getDate()}日`;
+        }
+
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+    </script>
+</body>
+</html> 

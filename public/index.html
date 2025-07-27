@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>宿泊予約フォーム</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Hiragino Sans', 'Yu Gothic UI', 'Meiryo', sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 20px auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 30px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #4CAF50;
+        }
+
+        .header h1 {
+            color: #4CAF50;
+            font-size: 28px;
+            margin-bottom: 5px;
+        }
+
+        .step-indicator {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+
+        .required {
+            color: #e74c3c;
+        }
+
+        input[type="text"],
+        input[type="email"],
+        input[type="tel"],
+        input[type="date"],
+        input[type="number"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #4CAF50;
+            box-shadow: 0 0 5px rgba(76, 175, 80, 0.3);
+        }
+
+        .form-row {
+            display: flex;
+            gap: 15px;
+        }
+
+        .form-row .form-group {
+            flex: 1;
+        }
+
+        .btn {
+            background-color: #4CAF50;
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            width: 100%;
+        }
+
+        .btn:hover {
+            background-color: #45a049;
+        }
+
+        .btn:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        .error {
+            color: #e74c3c;
+            font-size: 14px;
+            margin-top: 5px;
+            display: none;
+        }
+
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>宿泊予約フォーム</h1>
+        </div>
+        
+        <div class="step-indicator">
+            Step 1 of 3: 基本情報の入力
+        </div>
+
+        <div id="success-message" class="success"></div>
+        <div id="loading" class="loading">処理中...</div>
+
+        <form id="reservation-form">
+            <div class="form-group">
+                <label for="name">お名前 <span class="required">*</span></label>
+                <input type="text" id="name" name="name" required>
+                <div id="name-error" class="error"></div>
+            </div>
+
+            <div class="form-group">
+                <label for="kana">ふりがな</label>
+                <input type="text" id="kana" name="kana">
+                <div id="kana-error" class="error"></div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="phone">電話番号 <span class="required">*</span></label>
+                    <input type="tel" id="phone" name="phone" required>
+                    <div id="phone-error" class="error"></div>
+                </div>
+                <div class="form-group">
+                    <label for="email">メールアドレス</label>
+                    <input type="email" id="email" name="email">
+                    <div id="email-error" class="error"></div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="address">住所</label>
+                <textarea id="address" name="address" rows="3"></textarea>
+                <div id="address-error" class="error"></div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="checkinDate">チェックイン <span class="required">*</span></label>
+                    <input type="date" id="checkinDate" name="checkinDate" required>
+                    <div id="checkinDate-error" class="error"></div>
+                </div>
+                <div class="form-group">
+                    <label for="checkoutDate">チェックアウト <span class="required">*</span></label>
+                    <input type="date" id="checkoutDate" name="checkoutDate" required>
+                    <div id="checkoutDate-error" class="error"></div>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="adults">大人 <span class="required">*</span></label>
+                    <input type="number" id="adults" name="adults" min="1" value="1" required>
+                    <div id="adults-error" class="error"></div>
+                </div>
+                <div class="form-group">
+                    <label for="children">子ども</label>
+                    <input type="number" id="children" name="children" min="0" value="0">
+                    <div id="children-error" class="error"></div>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="roomType">部屋タイプ <span class="required">*</span></label>
+                    <select id="roomType" name="roomType" required>
+                        <option value="">選択してください</option>
+                        <option value="シングル">シングル</option>
+                        <option value="ダブル">ダブル</option>
+                        <option value="ツイン">ツイン</option>
+                        <option value="ファミリー">ファミリー</option>
+                    </select>
+                    <div id="roomType-error" class="error"></div>
+                </div>
+                <div class="form-group">
+                    <label for="plan">プラン <span class="required">*</span></label>
+                    <select id="plan" name="plan" required>
+                        <option value="">選択してください</option>
+                        <option value="素泊まり">素泊まり</option>
+                        <option value="朝食付き">朝食付き</option>
+                        <option value="2食付き">2食付き</option>
+                    </select>
+                    <div id="plan-error" class="error"></div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="notes">備考・特別なご要望</label>
+                <textarea id="notes" name="notes" rows="4" placeholder="アレルギー、到着時間、その他ご要望があればお書きください"></textarea>
+                <div id="notes-error" class="error"></div>
+            </div>
+
+            <button type="submit" class="btn" id="submit-btn">予約を送信</button>
+        </form>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('reservation-form');
+            const submitBtn = document.getElementById('submit-btn');
+            const loading = document.getElementById('loading');
+            const successMessage = document.getElementById('success-message');
+
+            // 今日の日付を最小値に設定
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('checkinDate').min = today;
+            document.getElementById('checkoutDate').min = today;
+
+            // チェックイン日が変更されたら、チェックアウト日の最小値を更新
+            document.getElementById('checkinDate').addEventListener('change', function() {
+                const checkinDate = this.value;
+                document.getElementById('checkoutDate').min = checkinDate;
+                
+                const checkoutDate = document.getElementById('checkoutDate').value;
+                if (checkoutDate && checkoutDate <= checkinDate) {
+                    document.getElementById('checkoutDate').value = '';
+                }
+            });
+
+            form.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                // エラーメッセージをクリア
+                const errorElements = document.querySelectorAll('.error');
+                errorElements.forEach(el => {
+                    el.style.display = 'none';
+                    el.textContent = '';
+                });
+
+                const formData = new FormData(form);
+                const data = Object.fromEntries(formData);
+
+                // ローディング表示
+                loading.style.display = 'block';
+                submitBtn.disabled = true;
+
+                try {
+                    const response = await fetch('/api/create_reservation.php', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(data)
+                    });
+
+                    const result = await response.json();
+
+                    if (response.ok && result.success) {
+                        successMessage.textContent = `予約が完了しました！予約番号: ${result.reservationId}`;
+                        successMessage.style.display = 'block';
+                        form.reset();
+                        
+                        // 成功時はページトップにスクロール
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                    } else {
+                        throw new Error(result.error || '予約処理中にエラーが発生しました');
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    
+                    // エラーメッセージを表示
+                    const generalError = document.createElement('div');
+                    generalError.className = 'error';
+                    generalError.style.display = 'block';
+                    generalError.textContent = error.message;
+                    form.insertBefore(generalError, form.firstChild);
+                } finally {
+                    loading.style.display = 'none';
+                    submitBtn.disabled = false;
+                }
+            });
+        });
+    </script>
+</body>
+</html> 

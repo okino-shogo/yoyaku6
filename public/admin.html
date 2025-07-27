@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>予約管理システム - 管理画面</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Hiragino Sans', 'Yu Gothic UI', 'Meiryo', sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .header {
+            background: #2c3e50;
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 24px;
+        }
+
+        .header .nav {
+            display: flex;
+            gap: 20px;
+        }
+
+        .header .nav a {
+            color: white;
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+
+        .header .nav a:hover {
+            background-color: rgba(255,255,255,0.2);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .filters {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .filters h2 {
+            margin-bottom: 15px;
+            color: #2c3e50;
+        }
+
+        .filter-row {
+            display: flex;
+            gap: 15px;
+            align-items: end;
+            flex-wrap: wrap;
+        }
+
+        .filter-group {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .filter-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+
+        .filter-group input,
+        .filter-group select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+
+        .btn-primary {
+            background-color: #3498db;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #2980b9;
+        }
+
+        .btn-success {
+            background-color: #27ae60;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background-color: #229954;
+        }
+
+        .btn-danger {
+            background-color: #e74c3c;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background-color: #c0392b;
+        }
+
+        .btn-clear {
+            background-color: #95a5a6;
+            color: white;
+        }
+
+        .btn-clear:hover {
+            background-color: #7f8c8d;
+        }
+
+        .reservations-table {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .table-header {
+            background: #34495e;
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .table-header h2 {
+            margin: 0;
+        }
+
+        .results-count {
+            font-size: 14px;
+            opacity: 0.8;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        .status {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .status-unassigned {
+            background-color: #f39c12;
+            color: white;
+        }
+
+        .status-assigned {
+            background-color: #3498db;
+            color: white;
+        }
+
+        .status-checked_in {
+            background-color: #27ae60;
+            color: white;
+        }
+
+        .status-checked_out {
+            background-color: #95a5a6;
+            color: white;
+        }
+
+        .status-cancelled {
+            background-color: #e74c3c;
+            color: white;
+        }
+
+        .payment-status {
+            padding: 3px 6px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        .payment-unpaid {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+
+        .payment-partial {
+            background-color: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .payment-paid {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .btn-sm {
+            padding: 4px 8px;
+            font-size: 12px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .filter-row {
+                flex-direction: column;
+            }
+            
+            .table-responsive {
+                overflow-x: auto;
+            }
+            
+            table {
+                min-width: 800px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🏨 予約管理システム</h1>
+        <nav class="nav">
+            <a href="/">新規予約</a>
+            <a href="/admin" class="active">予約一覧</a>
+            <a href="/monthly">月間ビュー</a>
+            <a href="/daily">日間ビュー</a>
+            <a href="/settings">設定</a>
+        </nav>
+    </div>
+
+    <div class="container">
+        <div class="filters">
+            <h2>検索・フィルター</h2>
+            <div class="filter-row">
+                <div class="filter-group">
+                    <label for="search">顧客名・電話・メール</label>
+                    <input type="text" id="search" placeholder="検索キーワード">
+                </div>
+                <div class="filter-group">
+                    <label for="checkinDate">チェックイン日</label>
+                    <input type="date" id="checkinDate">
+                </div>
+                <div class="filter-group">
+                    <label for="checkoutDate">チェックアウト日</label>
+                    <input type="date" id="checkoutDate">
+                </div>
+                <div class="filter-group">
+                    <label for="status">予約ステータス</label>
+                    <select id="status">
+                        <option value="">すべて</option>
+                        <option value="unassigned">未割当</option>
+                        <option value="assigned">割当済</option>
+                        <option value="checked_in">チェックイン済</option>
+                        <option value="checked_out">チェックアウト済</option>
+                        <option value="cancelled">キャンセル</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>&nbsp;</label>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn btn-primary" onclick="searchReservations()">検索</button>
+                        <button class="btn btn-clear" onclick="clearFilters()">クリア</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="error-message" class="error" style="display: none;"></div>
+
+        <div class="reservations-table">
+            <div class="table-header">
+                <h2>予約一覧</h2>
+                <div class="results-count" id="results-count">読み込み中...</div>
+            </div>
+            
+            <div class="table-responsive">
+                <div id="loading" class="loading">読み込み中...</div>
+                <div id="no-results" class="no-results" style="display: none;">
+                    該当する予約が見つかりません
+                </div>
+                
+                <table id="reservations-table" style="display: none;">
+                    <thead>
+                        <tr>
+                            <th>予約ID</th>
+                            <th>顧客名</th>
+                            <th>電話番号</th>
+                            <th>チェックイン</th>
+                            <th>チェックアウト</th>
+                            <th>人数</th>
+                            <th>プラン</th>
+                            <th>料金</th>
+                            <th>支払状況</th>
+                            <th>予約ステータス</th>
+                            <th>部屋</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="reservations-tbody">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- 予約編集モーダル -->
+    <div id="editModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>予約編集</h3>
+                <button class="modal-close" onclick="closeEditModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="editForm">
+                    <input type="hidden" id="editReservationId">
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="editCustomerName">顧客名</label>
+                            <input type="text" id="editCustomerName" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="editCustomerPhone">電話番号</label>
+                            <input type="text" id="editCustomerPhone" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="editCustomerEmail">メール</label>
+                            <input type="email" id="editCustomerEmail">
+                        </div>
+                        <div class="form-group">
+                            <label for="editPlan">プラン</label>
+                            <select id="editPlan" required>
+                                <!-- プランオプションが動的に設定される -->
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="editCheckinDate">チェックイン日</label>
+                            <input type="date" id="editCheckinDate" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="editCheckoutDate">チェックアウト日</label>
+                            <input type="date" id="editCheckoutDate" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="editAdults">大人人数</label>
+                            <input type="number" id="editAdults" min="1" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="editChildren">子ども人数</label>
+                            <input type="number" id="editChildren" min="0" value="0">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="editPrice">料金</label>
+                            <input type="number" id="editPrice" min="0" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="editPaymentStatus">支払い状況</label>
+                            <select id="editPaymentStatus">
+                                <option value="unpaid">未払い</option>
+                                <option value="partial">一部支払い済み</option>
+                                <option value="paid">支払い済み</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="editNotes">備考</label>
+                        <textarea id="editNotes" rows="3"></textarea>
+                    </div>
+
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn-secondary" onclick="closeEditModal()">キャンセル</button>
+                        <button type="submit" class="btn btn-primary">保存</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- キャンセル確認モーダル -->
+    <div id="cancelModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>予約キャンセル</h3>
+                <button class="modal-close" onclick="closeCancelModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="cancelReservationInfo"></div>
+                <form id="cancelForm">
+                    <input type="hidden" id="cancelReservationId">
+                    
+                    <div class="form-group">
+                        <label for="cancelReason">キャンセル理由</label>
+                        <textarea id="cancelReason" rows="3" placeholder="キャンセル理由を入力してください"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="refundAmount">返金額</label>
+                        <input type="number" id="refundAmount" min="0" placeholder="返金額（円）">
+                    </div>
+
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn-secondary" onclick="closeCancelModal()">取消</button>
+                        <button type="submit" class="btn btn-danger">キャンセル実行</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        /* モーダルスタイル */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            color: #2c3e50;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #999;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-close:hover {
+            color: #333;
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .form-group {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            font-family: inherit;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #e9ecef;
+        }
+
+        @media (max-width: 768px) {
+            .form-row {
+                flex-direction: column;
+            }
+            
+            .modal-content {
+                width: 95%;
+                margin: 10px;
+            }
+        }
+    </style>
+
+    <script>
+        let currentReservations = [];
+        let availablePlans = [];
+
+        // ページ読み込み時に予約一覧を取得
+        document.addEventListener('DOMContentLoaded', function() {
+            loadReservations();
+        });
+
+        // 予約一覧を取得
+        async function loadReservations(params = {}) {
+            try {
+                showLoading();
+                hideError();
+
+                // URLパラメータを構築
+                const queryParams = new URLSearchParams();
+                Object.keys(params).forEach(key => {
+                    if (params[key]) {
+                        queryParams.append(key, params[key]);
+                    }
+                });
+
+                const response = await fetch(`/api/list_reservations.php?${queryParams}`);
+                
+                // レスポンステキストを確認
+                const responseText = await response.text();
+                console.log('API Response:', responseText);
+                
+                let data;
+                try {
+                    data = JSON.parse(responseText);
+                } catch (parseError) {
+                    console.error('JSON Parse Error:', parseError);
+                    console.error('Response Text:', responseText);
+                    throw new Error(`JSONパースエラー: ${responseText.substring(0, 100)}...`);
+                }
+
+                if (response.ok) {
+                    currentReservations = data;
+                    displayReservations(data);
+                } else {
+                    throw new Error(data.error || 'データの取得に失敗しました');
+                }
+            } catch (error) {
+                console.error('Error loading reservations:', error);
+                showError(error.message);
+                showNoResults();
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // 予約一覧を表示
+        function displayReservations(reservations) {
+            const tbody = document.getElementById('reservations-tbody');
+            const table = document.getElementById('reservations-table');
+            const noResults = document.getElementById('no-results');
+            const resultsCount = document.getElementById('results-count');
+
+            if (reservations.length === 0) {
+                showNoResults();
+                resultsCount.textContent = '0件';
+                return;
+            }
+
+            tbody.innerHTML = '';
+            table.style.display = 'table';
+            noResults.style.display = 'none';
+            resultsCount.textContent = `${reservations.length}件`;
+
+            reservations.forEach(reservation => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${reservation.id}</td>
+                    <td>${reservation.customer.name}</td>
+                    <td>${reservation.customer.phone}</td>
+                    <td>${reservation.checkin_date}</td>
+                    <td>${reservation.checkout_date}</td>
+                    <td>${reservation.adults}名${reservation.children > 0 ? ` + 子${reservation.children}名` : ''}</td>
+                    <td>${reservation.plan.name}</td>
+                    <td>¥${reservation.price.toLocaleString()}</td>
+                    <td><span class="payment-status payment-${reservation.payment_status}">${getPaymentStatusText(reservation.payment_status)}</span></td>
+                    <td><span class="status status-${reservation.reservation_status}">${getReservationStatusText(reservation.reservation_status)}</span></td>
+                    <td>${reservation.room.room_number || '未割当'}</td>
+                    <td class="actions">
+                        <button class="btn btn-primary btn-sm" onclick="viewReservation(${reservation.id})">詳細</button>
+                        <button class="btn btn-success btn-sm" onclick="editReservation(${reservation.id})">編集</button>
+                        <button class="btn btn-danger btn-sm" onclick="cancelReservation(${reservation.id})">キャンセル</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        // 検索実行
+        function searchReservations() {
+            const params = {
+                search: document.getElementById('search').value.trim(),
+                checkinDate: document.getElementById('checkinDate').value,
+                checkoutDate: document.getElementById('checkoutDate').value,
+                status: document.getElementById('status').value
+            };
+
+            loadReservations(params);
+        }
+
+        // フィルターをクリア
+        function clearFilters() {
+            document.getElementById('search').value = '';
+            document.getElementById('checkinDate').value = '';
+            document.getElementById('checkoutDate').value = '';
+            document.getElementById('status').value = '';
+            loadReservations();
+        }
+
+        // 予約詳細表示
+        function viewReservation(id) {
+            const reservation = currentReservations.find(r => r.id === id);
+            if (reservation) {
+                alert(`予約詳細:\nID: ${reservation.id}\n顧客: ${reservation.customer.name}\n期間: ${reservation.checkin_date} 〜 ${reservation.checkout_date}\n料金: ¥${reservation.price.toLocaleString()}\n備考: ${reservation.notes || 'なし'}`);
+            }
+        }
+
+        // プラン一覧を取得してセレクトボックスに設定
+        async function loadPlans() {
+            try {
+                const response = await fetch('/api/plans.php');
+                const plans = await response.json();
+                availablePlans = plans;
+                
+                const editPlanSelect = document.getElementById('editPlan');
+                editPlanSelect.innerHTML = '';
+                
+                plans.forEach(plan => {
+                    const option = document.createElement('option');
+                    option.value = plan.name;
+                    option.textContent = plan.name;
+                    editPlanSelect.appendChild(option);
+                });
+            } catch (error) {
+                console.error('プラン読み込みエラー:', error);
+            }
+        }
+
+        // 予約編集モーダルを開く
+        async function editReservation(id) {
+            try {
+                // プラン一覧を読み込み（初回のみ）
+                if (availablePlans.length === 0) {
+                    await loadPlans();
+                }
+
+                // 現在の予約データを取得
+                const reservation = currentReservations.find(r => r.id === id);
+                if (!reservation) {
+                    alert('予約データが見つかりません');
+                    return;
+                }
+
+                // フォームに現在の値を設定
+                document.getElementById('editReservationId').value = reservation.id;
+                document.getElementById('editCustomerName').value = reservation.customer.name;
+                document.getElementById('editCustomerPhone').value = reservation.customer.phone;
+                document.getElementById('editCustomerEmail').value = reservation.customer.email || '';
+                document.getElementById('editPlan').value = reservation.plan.name;
+                document.getElementById('editCheckinDate').value = reservation.checkin_date;
+                document.getElementById('editCheckoutDate').value = reservation.checkout_date;
+                document.getElementById('editAdults').value = reservation.adults;
+                document.getElementById('editChildren').value = reservation.children;
+                document.getElementById('editPrice').value = reservation.price;
+                document.getElementById('editPaymentStatus').value = reservation.payment_status;
+                document.getElementById('editNotes').value = reservation.notes || '';
+
+                // モーダルを表示
+                document.getElementById('editModal').style.display = 'flex';
+            } catch (error) {
+                console.error('編集モーダル表示エラー:', error);
+                alert('編集画面の表示に失敗しました');
+            }
+        }
+
+        // 予約編集モーダルを閉じる
+        function closeEditModal() {
+            document.getElementById('editModal').style.display = 'none';
+        }
+
+        // 予約編集フォームの送信
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('editForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                try {
+                    const formData = {
+                        id: parseInt(document.getElementById('editReservationId').value),
+                        name: document.getElementById('editCustomerName').value,
+                        phone: document.getElementById('editCustomerPhone').value,
+                        email: document.getElementById('editCustomerEmail').value,
+                        plan: document.getElementById('editPlan').value,
+                        checkinDate: document.getElementById('editCheckinDate').value,
+                        checkoutDate: document.getElementById('editCheckoutDate').value,
+                        adults: parseInt(document.getElementById('editAdults').value),
+                        children: parseInt(document.getElementById('editChildren').value),
+                        price: parseFloat(document.getElementById('editPrice').value),
+                        payment_status: document.getElementById('editPaymentStatus').value,
+                        notes: document.getElementById('editNotes').value
+                    };
+
+                    const response = await fetch('/api/update_reservation.php', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(formData)
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        alert('予約が正常に更新されました');
+                        closeEditModal();
+                        loadReservations(); // 一覧を再読み込み
+                    } else {
+                        alert('更新エラー: ' + result.message);
+                    }
+                } catch (error) {
+                    console.error('更新エラー:', error);
+                    alert('予約の更新に失敗しました');
+                }
+            });
+        });
+
+        // 予約キャンセルモーダルを開く
+        function cancelReservation(id) {
+            try {
+                // 現在の予約データを取得
+                const reservation = currentReservations.find(r => r.id === id);
+                if (!reservation) {
+                    alert('予約データが見つかりません');
+                    return;
+                }
+
+                // キャンセル済みチェック
+                if (reservation.reservation_status === 'cancelled') {
+                    alert('この予約は既にキャンセル済みです');
+                    return;
+                }
+
+                // 予約情報をモーダルに表示
+                document.getElementById('cancelReservationInfo').innerHTML = `
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 4px; margin-bottom: 15px;">
+                        <h4>キャンセル対象予約</h4>
+                        <p><strong>予約ID:</strong> ${reservation.id}</p>
+                        <p><strong>顧客名:</strong> ${reservation.customer.name}</p>
+                        <p><strong>期間:</strong> ${reservation.checkin_date} 〜 ${reservation.checkout_date}</p>
+                        <p><strong>料金:</strong> ¥${reservation.price.toLocaleString()}</p>
+                        <p><strong>プラン:</strong> ${reservation.plan.name}</p>
+                    </div>
+                `;
+
+                // フォームを初期化
+                document.getElementById('cancelReservationId').value = reservation.id;
+                document.getElementById('cancelReason').value = '';
+                document.getElementById('refundAmount').value = '';
+                document.getElementById('refundAmount').max = reservation.price;
+
+                // モーダルを表示
+                document.getElementById('cancelModal').style.display = 'flex';
+            } catch (error) {
+                console.error('キャンセルモーダル表示エラー:', error);
+                alert('キャンセル画面の表示に失敗しました');
+            }
+        }
+
+        // 予約キャンセルモーダルを閉じる
+        function closeCancelModal() {
+            document.getElementById('cancelModal').style.display = 'none';
+        }
+
+        // 予約キャンセルフォームの送信
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('cancelForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                if (!confirm('本当にこの予約をキャンセルしますか？この操作は取り消すことができません。')) {
+                    return;
+                }
+                
+                try {
+                    const formData = {
+                        id: parseInt(document.getElementById('cancelReservationId').value),
+                        cancel_reason: document.getElementById('cancelReason').value,
+                        refund_amount: parseFloat(document.getElementById('refundAmount').value) || 0
+                    };
+
+                    const response = await fetch('/api/cancel_reservation.php', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(formData)
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        let message = '予約が正常にキャンセルされました';
+                        if (result.refund_amount > 0) {
+                            message += `\n返金額: ¥${result.refund_amount.toLocaleString()}`;
+                        }
+                        alert(message);
+                        closeCancelModal();
+                        loadReservations(); // 一覧を再読み込み
+                    } else {
+                        alert('キャンセルエラー: ' + result.message);
+                    }
+                } catch (error) {
+                    console.error('キャンセルエラー:', error);
+                    alert('予約のキャンセルに失敗しました');
+                }
+            });
+        });
+
+        // ステータステキスト取得
+        function getReservationStatusText(status) {
+            const statusMap = {
+                'unassigned': '未割当',
+                'assigned': '割当済',
+                'checked_in': 'チェックイン済',
+                'checked_out': 'チェックアウト済',
+                'cancelled': 'キャンセル'
+            };
+            return statusMap[status] || status;
+        }
+
+        function getPaymentStatusText(status) {
+            const statusMap = {
+                'unpaid': '未払い',
+                'partial': '一部支払い',
+                'paid': '支払済み'
+            };
+            return statusMap[status] || status;
+        }
+
+        // UI制御関数
+        function showLoading() {
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('reservations-table').style.display = 'none';
+            document.getElementById('no-results').style.display = 'none';
+        }
+
+        function hideLoading() {
+            document.getElementById('loading').style.display = 'none';
+        }
+
+        function showNoResults() {
+            document.getElementById('no-results').style.display = 'block';
+            document.getElementById('reservations-table').style.display = 'none';
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('error-message');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+
+        function hideError() {
+            document.getElementById('error-message').style.display = 'none';
+        }
+
+        // Enter キーで検索実行
+        document.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                searchReservations();
+            }
+        });
+    </script>
+</body>
+</html> 

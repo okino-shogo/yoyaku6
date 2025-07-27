@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>日間ビュー - 予約管理システム</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Hiragino Sans', 'Yu Gothic UI', 'Meiryo', sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+            overflow-x: auto;
+        }
+
+        .header {
+            background: #2c3e50;
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 24px;
+        }
+
+        .header .nav {
+            display: flex;
+            gap: 20px;
+        }
+
+        .header .nav a {
+            color: white;
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+
+        .header .nav a:hover,
+        .header .nav a.active {
+            background-color: rgba(255,255,255,0.2);
+        }
+
+        .container {
+            display: flex;
+            height: calc(100vh - 80px);
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .controls {
+            background: white;
+            padding: 20px;
+            border-bottom: 1px solid #dee2e6;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .control-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .date-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: bold;
+        }
+
+        .date-btn {
+            padding: 8px 16px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .date-btn:hover {
+            background: #0056b3;
+        }
+
+        .current-date {
+            font-size: 18px;
+            color: #2c3e50;
+            min-width: 150px;
+            text-align: center;
+        }
+
+        .filters {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .filter-group label {
+            font-size: 12px;
+            color: #666;
+            font-weight: bold;
+        }
+
+        .filter-select, .filter-input {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .view-mode-tabs {
+            display: flex;
+            gap: 5px;
+        }
+
+        .view-mode-btn {
+            padding: 8px 16px;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 14px;
+        }
+
+        .view-mode-btn.active {
+            background: #28a745;
+            color: white;
+            border-color: #28a745;
+        }
+
+        .unassigned-bar {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 15px;
+            margin: 0;
+            border-radius: 0;
+        }
+
+        .unassigned-bar h3 {
+            font-size: 16px;
+            margin-bottom: 10px;
+            color: #856404;
+        }
+
+        .unassigned-list {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .unassigned-item {
+            background: #fd7e14;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: grab;
+            transition: all 0.3s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .unassigned-item:active {
+            cursor: grabbing;
+        }
+
+        .unassigned-item:hover {
+            background: #e06500;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .room-grid-container {
+            flex: 1;
+            overflow: auto;
+            background: white;
+        }
+
+        .room-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 15px;
+            padding: 20px;
+            min-height: 100%;
+        }
+
+        .room-card {
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            padding: 15px;
+            transition: all 0.3s;
+            min-height: 180px;
+            position: relative;
+        }
+
+        .room-card.available {
+            border-color: #28a745;
+            background: #f8fff9;
+        }
+
+        .room-card.occupied {
+            border-color: #ffc107;
+            background: #fffbf0;
+        }
+
+        .room-card.overbooked {
+            border-color: #dc3545;
+            background: #fff5f5;
+        }
+
+        .room-card.drag-over {
+            border-color: #007bff;
+            background: #e3f2fd;
+            transform: scale(1.02);
+        }
+
+        .room-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .room-number {
+            font-weight: bold;
+            font-size: 16px;
+            color: #2c3e50;
+        }
+
+        .room-type {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .occupancy-info {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 12px;
+        }
+
+        .occupancy-rate {
+            font-weight: bold;
+        }
+
+        .occupancy-rate.normal {
+            color: #28a745;
+        }
+
+        .occupancy-rate.warning {
+            color: #ffc107;
+        }
+
+        .occupancy-rate.danger {
+            color: #dc3545;
+        }
+
+        .room-reservations {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            min-height: 80px;
+        }
+
+        .reservation-item {
+            background: #6c757d;
+            color: white;
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            line-height: 1.4;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .reservation-item.checkin {
+            background: #007bff;
+        }
+
+        .reservation-item.checkout {
+            background: #ffc107;
+            color: #333;
+        }
+
+        .reservation-item.staying {
+            background: #28a745;
+        }
+
+        .reservation-item:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .customer-name {
+            font-weight: bold;
+            margin-bottom: 2px;
+        }
+
+        .reservation-details {
+            font-size: 11px;
+            opacity: 0.9;
+        }
+
+        .empty-room {
+            color: #999;
+            font-style: italic;
+            text-align: center;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100px;
+        }
+
+        .reservation-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: white;
+            margin: 50px auto;
+            padding: 20px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #999;
+        }
+
+        .modal-close:hover {
+            color: #333;
+        }
+
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 5px;
+        }
+
+        .status-indicator.checkin {
+            background: #007bff;
+        }
+
+        .status-indicator.checkout {
+            background: #ffc107;
+        }
+
+        .status-indicator.staying {
+            background: #28a745;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 50px;
+            color: #666;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .control-row {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .filters {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .room-grid {
+                grid-template-columns: 1fr;
+                gap: 10px;
+                padding: 10px;
+            }
+
+            .header {
+                flex-direction: column;
+                gap: 10px;
+                text-align: center;
+            }
+
+            .header .nav {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>日間ビュー - 予約管理システム</h1>
+        <nav class="nav">
+            <a href="/">新規予約</a>
+            <a href="/admin">予約一覧</a>
+            <a href="/monthly">月間ビュー</a>
+            <a href="/daily" class="active">日間ビュー</a>
+            <a href="/settings">設定</a>
+        </nav>
+    </div>
+
+    <div class="container">
+        <div class="main-content">
+            <!-- 日付・フィルター制御 -->
+            <div class="controls">
+                <div class="control-row">
+                    <div class="date-controls">
+                        <button class="date-btn" id="prevDayBtn">← 前日</button>
+                        <div class="current-date" id="currentDate">2025年8月16日</div>
+                        <button class="date-btn" id="nextDayBtn">翌日 →</button>
+                        <input type="date" id="datePicker" class="filter-input" style="margin-left: 15px;">
+                    </div>
+                </div>
+
+                <div class="control-row">
+                    <div class="filters">
+                        <div class="filter-group">
+                            <label>部屋グループ</label>
+                            <select id="groupFilter" class="filter-select">
+                                <option value="">全て</option>
+                            </select>
+                        </div>
+
+                        <div class="filter-group">
+                            <label>キーワード検索</label>
+                            <input type="text" id="keywordFilter" class="filter-input" placeholder="顧客名・プラン名・部屋番号">
+                        </div>
+
+                        <div class="filter-group">
+                            <label>表示モード</label>
+                            <div class="view-mode-tabs">
+                                <button class="view-mode-btn active" data-mode="all">全て</button>
+                                <button class="view-mode-btn" data-mode="checkin">チェックイン</button>
+                                <button class="view-mode-btn" data-mode="checkout">チェックアウト</button>
+                                <button class="view-mode-btn" data-mode="staying">宿泊中</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 未割り当て予約バー -->
+            <div class="unassigned-bar" id="unassignedBar" style="display: none;">
+                <h3>未割り当て予約</h3>
+                <div class="unassigned-list" id="unassignedList">
+                    <!-- 未割り当て予約がここに表示される -->
+                </div>
+            </div>
+
+            <!-- 部屋グリッド -->
+            <div class="room-grid-container">
+                <div class="loading" id="loading">データを読み込み中...</div>
+                <div class="room-grid" id="roomGrid" style="display: none;">
+                    <!-- 部屋カードがここに動的に生成される -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 予約詳細モーダル -->
+    <div class="reservation-modal" id="reservationModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>予約詳細</h3>
+                <button class="modal-close" id="modalClose">&times;</button>
+            </div>
+            <div id="modalBody">
+                <!-- 予約詳細がここに表示される -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // グローバル変数
+        let currentDate = new Date();
+        let currentData = null;
+        let selectedGroupId = null;
+        let selectedViewMode = 'all';
+        let searchKeyword = '';
+
+        // DOM要素
+        const currentDateElement = document.getElementById('currentDate');
+        const datePicker = document.getElementById('datePicker');
+        const prevDayBtn = document.getElementById('prevDayBtn');
+        const nextDayBtn = document.getElementById('nextDayBtn');
+        const groupFilter = document.getElementById('groupFilter');
+        const keywordFilter = document.getElementById('keywordFilter');
+        const viewModeBtns = document.querySelectorAll('.view-mode-btn');
+        const unassignedBar = document.getElementById('unassignedBar');
+        const unassignedList = document.getElementById('unassignedList');
+        const roomGrid = document.getElementById('roomGrid');
+        const loading = document.getElementById('loading');
+        const reservationModal = document.getElementById('reservationModal');
+        const modalClose = document.getElementById('modalClose');
+        const modalBody = document.getElementById('modalBody');
+
+        // 初期化
+        document.addEventListener('DOMContentLoaded', function() {
+            initializePage();
+            loadDailyData();
+        });
+
+        // ページ初期化
+        function initializePage() {
+            updateDateDisplay();
+            setupEventListeners();
+        }
+
+        // イベントリスナー設定
+        function setupEventListeners() {
+            // 日付制御
+            prevDayBtn.addEventListener('click', () => changeDate(-1));
+            nextDayBtn.addEventListener('click', () => changeDate(1));
+            datePicker.addEventListener('change', handleDatePickerChange);
+
+            // フィルター
+            groupFilter.addEventListener('change', handleGroupFilterChange);
+            keywordFilter.addEventListener('input', debounce(handleKeywordFilter, 300));
+
+            // 表示モード切り替え
+            viewModeBtns.forEach(btn => {
+                btn.addEventListener('click', () => handleViewModeChange(btn.dataset.mode));
+            });
+
+            // モーダル
+            modalClose.addEventListener('click', closeModal);
+            reservationModal.addEventListener('click', (e) => {
+                if (e.target === reservationModal) closeModal();
+            });
+        }
+
+        // 日付表示更新
+        function updateDateDisplay() {
+            const options = { 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric',
+                weekday: 'short'
+            };
+            currentDateElement.textContent = currentDate.toLocaleDateString('ja-JP', options);
+            datePicker.value = formatDateForInput(currentDate);
+        }
+
+        // 日付変更
+        function changeDate(days) {
+            currentDate.setDate(currentDate.getDate() + days);
+            updateDateDisplay();
+            loadDailyData();
+        }
+
+        // 日付ピッカー変更処理
+        function handleDatePickerChange(e) {
+            const newDate = new Date(e.target.value + 'T00:00:00');
+            if (!isNaN(newDate)) {
+                currentDate = newDate;
+                updateDateDisplay();
+                loadDailyData();
+            }
+        }
+
+        // グループフィルター変更
+        function handleGroupFilterChange(e) {
+            selectedGroupId = e.target.value || null;
+            loadDailyData();
+        }
+
+        // キーワードフィルター
+        function handleKeywordFilter(e) {
+            searchKeyword = e.target.value.trim();
+            loadDailyData();
+        }
+
+        // 表示モード変更
+        function handleViewModeChange(mode) {
+            selectedViewMode = mode;
+            
+            // ボタンの状態更新
+            viewModeBtns.forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.mode === mode);
+            });
+            
+            loadDailyData();
+        }
+
+        // 日間データ読み込み
+        async function loadDailyData() {
+            try {
+                loading.style.display = 'block';
+                roomGrid.style.display = 'none';
+
+                const params = new URLSearchParams({
+                    date: formatDateForAPI(currentDate),
+                    view_mode: selectedViewMode
+                });
+
+                if (selectedGroupId) {
+                    params.append('group_id', selectedGroupId);
+                }
+
+                if (searchKeyword) {
+                    params.append('keyword', searchKeyword);
+                }
+
+                const response = await fetch(`/api/daily_view.php?${params}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+
+                currentData = data;
+                renderRoomGroups(data.room_groups);
+                renderUnassignedReservations(data.unassigned_reservations);
+                renderRoomGrid(data.room_grid);
+
+            } catch (error) {
+                console.error('データ読み込みエラー:', error);
+                showError('データの読み込みに失敗しました: ' + error.message);
+            } finally {
+                loading.style.display = 'none';
+                roomGrid.style.display = 'grid';
+            }
+        }
+
+        // 部屋グループ選択肢レンダリング
+        function renderRoomGroups(groups) {
+            groupFilter.innerHTML = '<option value="">全て</option>';
+            groups.forEach(group => {
+                const option = document.createElement('option');
+                option.value = group.id;
+                option.textContent = group.name;
+                option.selected = selectedGroupId == group.id;
+                groupFilter.appendChild(option);
+            });
+        }
+
+        // 未割り当て予約レンダリング
+        function renderUnassignedReservations(reservations) {
+            if (reservations.length === 0) {
+                unassignedBar.style.display = 'none';
+                return;
+            }
+
+            unassignedBar.style.display = 'block';
+            unassignedList.innerHTML = '';
+
+            reservations.forEach(reservation => {
+                const item = document.createElement('div');
+                item.className = 'unassigned-item';
+                item.draggable = true;
+                item.dataset.reservationId = reservation.id;
+                
+                item.innerHTML = `
+                    <div class="customer-name">${reservation.customer_name}</div>
+                    <div class="reservation-details">
+                        ${reservation.plan_name} | ${reservation.adults + reservation.children}名<br>
+                        ${formatDateRange(reservation.checkin_date, reservation.checkout_date)}
+                    </div>
+                `;
+
+                // ドラッグイベント
+                item.addEventListener('dragstart', handleDragStart);
+                item.addEventListener('click', () => showReservationModal(reservation));
+
+                unassignedList.appendChild(item);
+            });
+        }
+
+        // 部屋グリッドレンダリング
+        function renderRoomGrid(gridData) {
+            roomGrid.innerHTML = '';
+
+            gridData.forEach(roomData => {
+                const roomCard = createRoomCard(roomData);
+                roomGrid.appendChild(roomCard);
+            });
+        }
+
+        // 部屋カード作成
+        function createRoomCard(roomData) {
+            const { room, reservations, total_guests, capacity, room_status, can_assign } = roomData;
+
+            const card = document.createElement('div');
+            card.className = `room-card ${room_status}`;
+            card.dataset.roomId = room.id;
+
+            // ドロップイベント
+            if (can_assign) {
+                card.addEventListener('dragover', handleDragOver);
+                card.addEventListener('drop', handleDrop);
+                card.addEventListener('dragleave', handleDragLeave);
+            }
+
+            const occupancyClass = 
+                room_status === 'overbooked' ? 'danger' : 
+                room_status === 'occupied' ? 'warning' : 'normal';
+
+            card.innerHTML = `
+                <div class="room-header">
+                    <div>
+                        <div class="room-number">${room.room_number}</div>
+                        <div class="room-type">${room.room_type_name}</div>
+                    </div>
+                    <div class="occupancy-info">
+                        <span class="occupancy-rate ${occupancyClass}">
+                            ${total_guests}/${capacity}名
+                        </span>
+                    </div>
+                </div>
+                <div class="room-reservations">
+                    ${reservations.length === 0 ? 
+                        '<div class="empty-room">空室</div>' : 
+                        reservations.map(createReservationItem).join('')
+                    }
+                </div>
+            `;
+
+            return card;
+        }
+
+        // 予約アイテム作成
+        function createReservationItem(reservation) {
+            return `
+                <div class="reservation-item ${reservation.daily_status}" 
+                     onclick="showReservationModal(${JSON.stringify(reservation).replace(/"/g, '&quot;')})">
+                    <div class="customer-name">
+                        <span class="status-indicator ${reservation.daily_status}"></span>
+                        ${reservation.customer_name}
+                    </div>
+                    <div class="reservation-details">
+                        ${reservation.plan_name} | ${reservation.adults + reservation.children}名<br>
+                        ${formatDateRange(reservation.checkin_date, reservation.checkout_date)}
+                    </div>
+                </div>
+            `;
+        }
+
+        // ドラッグ開始
+        function handleDragStart(e) {
+            e.dataTransfer.setData('text/plain', e.target.dataset.reservationId);
+            e.target.style.opacity = '0.5';
+        }
+
+        // ドラッグオーバー
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.currentTarget.classList.add('drag-over');
+        }
+
+        // ドラッグ離脱
+        function handleDragLeave(e) {
+            e.currentTarget.classList.remove('drag-over');
+        }
+
+        // ドロップ処理
+        function handleDrop(e) {
+            e.preventDefault();
+            e.currentTarget.classList.remove('drag-over');
+            
+            const reservationId = e.dataTransfer.getData('text/plain');
+            const roomId = e.currentTarget.dataset.roomId;
+            
+            if (reservationId && roomId) {
+                assignReservationToRoom(reservationId, roomId);
+            }
+        }
+
+        // 予約を部屋に割り当て
+        async function assignReservationToRoom(reservationId, roomId) {
+            try {
+                const response = await fetch('/api/assign_reservation.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        reservation_id: reservationId,
+                        room_id: roomId
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // 成功時はデータを再読み込み
+                    await loadDailyData();
+                    showSuccessMessage('予約を部屋に割り当てました');
+                } else {
+                    throw new Error(result.error || '割り当てに失敗しました');
+                }
+            } catch (error) {
+                console.error('割り当てエラー:', error);
+                showError('予約の割り当てに失敗しました: ' + error.message);
+            }
+        }
+
+        // 予約詳細モーダル表示
+        function showReservationModal(reservation) {
+            modalBody.innerHTML = `
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                    <div>
+                        <strong>予約ID:</strong> ${reservation.id}<br>
+                        <strong>顧客名:</strong> ${reservation.customer_name}<br>
+                        <strong>電話番号:</strong> ${reservation.customer_phone || 'なし'}<br>
+                        <strong>プラン:</strong> ${reservation.plan_name}
+                    </div>
+                    <div>
+                        <strong>期間:</strong> ${formatDateRange(reservation.checkin_date, reservation.checkout_date)}<br>
+                        <strong>人数:</strong> 大人${reservation.adults}名 子ども${reservation.children}名<br>
+                        <strong>料金:</strong> ¥${reservation.price.toLocaleString()}<br>
+                        <strong>支払状況:</strong> ${getPaymentStatusText(reservation.payment_status)}
+                    </div>
+                </div>
+                ${reservation.notes ? `<div><strong>備考:</strong><br>${reservation.notes}</div>` : ''}
+            `;
+            reservationModal.style.display = 'block';
+        }
+
+        // モーダル閉じる
+        function closeModal() {
+            reservationModal.style.display = 'none';
+        }
+
+        // 成功メッセージ表示
+        function showSuccessMessage(message) {
+            // 簡易的な成功メッセージ表示
+            alert(message);
+        }
+
+        // エラー表示
+        function showError(message) {
+            roomGrid.innerHTML = `<div class="error">${message}</div>`;
+        }
+
+        // ユーティリティ関数
+        function formatDateForAPI(date) {
+            return date.toISOString().split('T')[0];
+        }
+
+        function formatDateForInput(date) {
+            return date.toISOString().split('T')[0];
+        }
+
+        function formatDateRange(checkinDate, checkoutDate) {
+            const checkin = new Date(checkinDate);
+            const checkout = new Date(checkoutDate);
+            const nights = Math.ceil((checkout - checkin) / (1000 * 60 * 60 * 24));
+            
+            return `${checkin.getMonth() + 1}/${checkin.getDate()} - ${checkout.getMonth() + 1}/${checkout.getDate()} (${nights}泊)`;
+        }
+
+        function getPaymentStatusText(status) {
+            const statusMap = {
+                'unpaid': '未払い',
+                'partial': '一部支払い済み',
+                'paid': '支払い済み'
+            };
+            return statusMap[status] || status;
+        }
+
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+    </script>
+</body>
+</html> 
