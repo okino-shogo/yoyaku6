@@ -437,6 +437,71 @@
                 padding: 15px;
             }
         }
+
+        /* メール通知設定用スタイル */
+        .checkbox-group {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .checkbox-group label {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            cursor: pointer;
+            padding: 12px;
+            border-radius: 6px;
+            border: 1px solid #e0e0e0;
+            transition: all 0.2s;
+        }
+
+        .checkbox-group label:hover {
+            background-color: #f8f9fa;
+            border-color: #007bff;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            margin: 0;
+            width: 18px;
+            height: 18px;
+            accent-color: #007bff;
+            flex-shrink: 0;
+        }
+
+        .checkbox-label {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            flex-grow: 1;
+        }
+
+        .checkbox-label strong {
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 14px;
+        }
+
+        .checkbox-label small {
+            color: #666;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+
+        .form-help {
+            font-size: 12px;
+            color: #666;
+            margin-top: 4px;
+            line-height: 1.4;
+        }
+
+        .checkbox-group label input[type="checkbox"]:checked + .checkbox-label {
+            color: #007bff;
+        }
+
+        .checkbox-group label input[type="checkbox"]:checked + .checkbox-label strong {
+            color: #0056b3;
+        }
     </style>
 </head>
 <body>
@@ -467,6 +532,7 @@
                 <button class="tab-header" data-tab="room-groups">部屋グループ</button>
                 <button class="tab-header" data-tab="plans">プラン管理</button>
                 <button class="tab-header" data-tab="system">システム設定</button>
+                <button class="tab-header" data-tab="email">メール通知</button>
             </div>
 
             <!-- 部屋一覧タブ -->
@@ -689,6 +755,135 @@
 
                 <div id="system-loading" class="loading" style="display: none;">設定を読み込み中...</div>
             </div>
+
+            <!-- メール通知タブ -->
+            <div id="email-tab" class="tab-content">
+                <div class="content-header">
+                    <h3>📧 メール通知設定</h3>
+                    <button class="btn btn-primary" onclick="saveEmailSettings()">設定を保存</button>
+                </div>
+
+                <div class="settings-sections">
+                    <!-- メール機能基本設定 -->
+                    <div class="setting-section">
+                        <h4>⚙️ 基本設定</h4>
+                        <div class="setting-form">
+                            <div class="form-group">
+                                <label>
+                                    <input type="checkbox" id="email-enabled"> メール機能を有効にする
+                                </label>
+                                <div class="form-help">チェックを外すとすべてのメール送信が無効になります</div>
+                            </div>
+                            <div class="form-group">
+                                <label for="email-from-address">送信元メールアドレス <span class="required">*</span></label>
+                                <input type="email" id="email-from-address" placeholder="noreply@example.com" maxlength="100">
+                                <div class="form-error" id="email-from-address-error"></div>
+                            </div>
+                            <div class="form-group">
+                                <label for="email-from-name">送信者名</label>
+                                <input type="text" id="email-from-name" placeholder="サンプル宿泊施設" maxlength="50">
+                                <div class="form-error" id="email-from-name-error"></div>
+                            </div>
+                            <div class="form-group">
+                                <label for="email-admin-address">管理者メールアドレス <span class="required">*</span></label>
+                                <input type="email" id="email-admin-address" placeholder="admin@example.com" maxlength="100">
+                                <div class="form-error" id="email-admin-address-error"></div>
+                                <div class="form-help">システムエラーや新規予約通知の送信先</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 顧客向け通知設定 -->
+                    <div class="setting-section">
+                        <h4>👥 顧客向け通知</h4>
+                        <div class="setting-form">
+                            <div class="checkbox-group">
+                                <label>
+                                    <input type="checkbox" id="email-reservation-confirmation" checked>
+                                    <span class="checkbox-label">
+                                        <strong>予約確認メール</strong>
+                                        <small>新規予約完了時に自動送信</small>
+                                    </span>
+                                </label>
+                                <label>
+                                    <input type="checkbox" id="email-reservation-update" checked>
+                                    <span class="checkbox-label">
+                                        <strong>予約変更通知</strong>
+                                        <small>編集・部屋割り当て時の変更案内</small>
+                                    </span>
+                                </label>
+                                <label>
+                                    <input type="checkbox" id="email-cancellation-notice" checked>
+                                    <span class="checkbox-label">
+                                        <strong>キャンセル通知</strong>
+                                        <small>予約キャンセル時の返金案内</small>
+                                    </span>
+                                </label>
+                                <label>
+                                    <input type="checkbox" id="email-checkin-reminder">
+                                    <span class="checkbox-label">
+                                        <strong>チェックイン案内</strong>
+                                        <small>前日または当日の到着案内</small>
+                                    </span>
+                                </label>
+                                <label>
+                                    <input type="checkbox" id="email-checkout-notice">
+                                    <span class="checkbox-label">
+                                        <strong>チェックアウト案内</strong>
+                                        <small>精算・退室手続きの案内</small>
+                                    </span>
+                                </label>
+                                <label>
+                                    <input type="checkbox" id="email-payment-reminder">
+                                    <span class="checkbox-label">
+                                        <strong>支払い督促</strong>
+                                        <small>未払い予約に対する催促メール</small>
+                                    </span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 管理者向け通知設定 -->
+                    <div class="setting-section">
+                        <h4>👨‍💼 管理者向け通知</h4>
+                        <div class="setting-form">
+                            <div class="checkbox-group">
+                                <label>
+                                    <input type="checkbox" id="email-admin-new-reservation" checked>
+                                    <span class="checkbox-label">
+                                        <strong>新規予約アラート</strong>
+                                        <small>Web予約受付時の即座な通知</small>
+                                    </span>
+                                </label>
+                                <label>
+                                    <input type="checkbox" id="email-admin-daily-summary">
+                                    <span class="checkbox-label">
+                                        <strong>日次サマリー</strong>
+                                        <small>当日のチェックイン・アウト予定</small>
+                                    </span>
+                                </label>
+                                <label>
+                                    <input type="checkbox" id="email-admin-payment-report">
+                                    <span class="checkbox-label">
+                                        <strong>未払いレポート</strong>
+                                        <small>定期的な支払い状況の報告</small>
+                                    </span>
+                                </label>
+                                <label>
+                                    <input type="checkbox" id="email-admin-system-error" checked>
+                                    <span class="checkbox-label">
+                                        <strong>システムエラー通知</strong>
+                                        <small>API障害・データベース異常の報告</small>
+                                    </span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="email-loading" class="loading" style="display: none;">設定を読み込み中...</div>
+            </div>
         </div>
     </div>
 
@@ -907,6 +1102,9 @@
                             break;
                         case 'system':
                             loadSystemSettings();
+                            break;
+                        case 'email':
+                            loadEmailSettings();
                             break;
                     }
                 });
@@ -1756,6 +1954,130 @@
         // システム設定ローディング表示制御
         function showSystemLoading(show) {
             document.getElementById('system-loading').style.display = show ? 'block' : 'none';
+        }
+
+        // =======================================================================
+        // メール通知設定
+        // =======================================================================
+
+        // メール設定の読み込み
+        function loadEmailSettings() {
+            showEmailLoading(true);
+            
+            fetch('/api/settings/system.php')
+                .then(response => response.json())
+                .then(data => {
+                    populateEmailSettings(data);
+                    showEmailLoading(false);
+                })
+                .catch(error => {
+                    console.error('メール設定の読み込みエラー:', error);
+                    showError('メール設定の読み込みに失敗しました');
+                    showEmailLoading(false);
+                });
+        }
+
+        // メール設定フォームへの値の設定
+        function populateEmailSettings(settings) {
+            // 基本設定
+            document.getElementById('email-enabled').checked = settings.email_enabled?.value === 'true';
+            document.getElementById('email-from-address').value = settings.email_from_address?.value || '';
+            document.getElementById('email-from-name').value = settings.email_from_name?.value || '';
+            document.getElementById('email-admin-address').value = settings.email_admin_address?.value || '';
+
+            // 顧客向け通知設定
+            document.getElementById('email-reservation-confirmation').checked = settings.email_reservation_confirmation?.value === 'true';
+            document.getElementById('email-reservation-update').checked = settings.email_reservation_update?.value === 'true';
+            document.getElementById('email-cancellation-notice').checked = settings.email_cancellation_notice?.value === 'true';
+            document.getElementById('email-checkin-reminder').checked = settings.email_checkin_reminder?.value === 'true';
+            document.getElementById('email-checkout-notice').checked = settings.email_checkout_notice?.value === 'true';
+            document.getElementById('email-payment-reminder').checked = settings.email_payment_reminder?.value === 'true';
+
+            // 管理者向け通知設定
+            document.getElementById('email-admin-new-reservation').checked = settings.email_admin_new_reservation?.value === 'true';
+            document.getElementById('email-admin-daily-summary').checked = settings.email_admin_daily_summary?.value === 'true';
+            document.getElementById('email-admin-payment-report').checked = settings.email_admin_payment_report?.value === 'true';
+            document.getElementById('email-admin-system-error').checked = settings.email_admin_system_error?.value === 'true';
+        }
+
+        // メール設定の保存
+        function saveEmailSettings() {
+            clearFormErrors();
+            
+            const data = {
+                // 基本設定
+                email_enabled: document.getElementById('email-enabled').checked ? 'true' : 'false',
+                email_from_address: document.getElementById('email-from-address').value,
+                email_from_name: document.getElementById('email-from-name').value,
+                email_admin_address: document.getElementById('email-admin-address').value,
+                // 顧客向け通知設定
+                email_reservation_confirmation: document.getElementById('email-reservation-confirmation').checked ? 'true' : 'false',
+                email_reservation_update: document.getElementById('email-reservation-update').checked ? 'true' : 'false',
+                email_cancellation_notice: document.getElementById('email-cancellation-notice').checked ? 'true' : 'false',
+                email_checkin_reminder: document.getElementById('email-checkin-reminder').checked ? 'true' : 'false',
+                email_checkout_notice: document.getElementById('email-checkout-notice').checked ? 'true' : 'false',
+                email_payment_reminder: document.getElementById('email-payment-reminder').checked ? 'true' : 'false',
+                // 管理者向け通知設定
+                email_admin_new_reservation: document.getElementById('email-admin-new-reservation').checked ? 'true' : 'false',
+                email_admin_daily_summary: document.getElementById('email-admin-daily-summary').checked ? 'true' : 'false',
+                email_admin_payment_report: document.getElementById('email-admin-payment-report').checked ? 'true' : 'false',
+                email_admin_system_error: document.getElementById('email-admin-system-error').checked ? 'true' : 'false'
+            };
+
+            // クライアント側バリデーション
+            let hasErrors = false;
+
+            // メール機能が有効な場合の必須項目チェック
+            if (data.email_enabled === 'true') {
+                if (!data.email_from_address.trim()) {
+                    showFormError('email-from-address-error', 'メール機能有効時は送信元メールアドレスが必須です');
+                    hasErrors = true;
+                } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email_from_address)) {
+                    showFormError('email-from-address-error', '正しいメールアドレス形式で入力してください');
+                    hasErrors = true;
+                }
+
+                if (!data.email_admin_address.trim()) {
+                    showFormError('email-admin-address-error', 'メール機能有効時は管理者メールアドレスが必須です');
+                    hasErrors = true;
+                } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email_admin_address)) {
+                    showFormError('email-admin-address-error', '正しいメールアドレス形式で入力してください');
+                    hasErrors = true;
+                }
+            }
+
+            if (hasErrors) {
+                return;
+            }
+
+            showEmailLoading(true);
+
+            fetch('/api/settings/system.php', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    showSuccess(`メール通知設定を更新しました（${result.updated_count}件更新）`);
+                } else {
+                    showError(result.error || 'メール通知設定の保存に失敗しました');
+                }
+                showEmailLoading(false);
+            })
+            .catch(error => {
+                console.error('メール設定保存エラー:', error);
+                showError('メール通知設定の保存に失敗しました');
+                showEmailLoading(false);
+            });
+        }
+
+        // メール設定ローディング表示制御
+        function showEmailLoading(show) {
+            document.getElementById('email-loading').style.display = show ? 'block' : 'none';
         }
 
         // フォームエラーの表示

@@ -5,6 +5,7 @@
  */
 
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../config/email.php';
 
 // CORSヘッダーを設定
 header('Access-Control-Allow-Origin: *');
@@ -142,6 +143,23 @@ try {
 
     $pdo->commit();
 
+    // メール送信処理
+    try {
+        // 予約データの取得（メール送信用）
+        $reservationData = getReservationDataForEmail($pdo, $reservation_id);
+        
+        if ($reservationData) {
+            // 顧客向け予約確認メール
+            sendReservationConfirmationEmail($reservationData);
+            
+            // 管理者向け新規予約通知
+            sendAdminNewReservationAlert($reservationData);
+        }
+    } catch (Exception $e) {
+        // メール送信エラーは予約作成の成功に影響させない
+        error_log("Email sending error after reservation creation: " . $e->getMessage());
+    }
+
     sendJsonResponse([
         'success' => true,
         'reservationId' => $reservation_id,
@@ -154,4 +172,55 @@ try {
     }
     error_log("create_reservation.php Error: " . $e->getMessage());
     sendErrorResponse('予約登録中にエラーが発生しました', 500);
+}
+
+/**
+ * メール送信用の予約データを取得
+ */
+function getReservationDataForEmail($pdo, $reservationId) {
+    $stmt = $pdo->prepare("
+        SELECT 
+            r.id,
+            r.checkin_date,
+            r.checkout_date,
+            r.adults,
+            r.children,
+            r.price,
+            r.payment_status,
+            r.reservation_status,
+            c.name as customer_name,
+            c.phone as customer_phone,
+            c.email as customer_email,
+            p.name as plan_name,
+            s1.setting_value as facility_name,
+            s2.setting_value as facility_address,
+            s3.setting_value as facility_phone,
+            s4.setting_value as facility_email,
+            s5.setting_value as checkin_time,
+            s6.setting_value as checkout_time
+        FROM reservations r
+        JOIN customers c ON r.customer_id = c.id
+        JOIN plans p ON r.plan_id = p.id
+        LEFT JOIN system_settings s1 ON s1.setting_key = 'facility_name'
+        LEFT JOIN system_settings s2 ON s2.setting_key = 'facility_address'
+        LEFT JOIN system_settings s3 ON s3.setting_key = 'facility_phone'
+        LEFT JOIN system_settings s4 ON s4.setting_key = 'facility_email'
+        LEFT JOIN system_settings s5 ON s5.setting_key = 'checkin_time'
+        LEFT JOIN system_settings s6 ON s6.setting_key = 'checkout_time'
+        WHERE r.id = ?
+    ");
+    
+    $stmt->execute([$reservationId]);
+    $result = $stmt->fetch();
+    
+    if ($result) {
+        // 管理画面のURLを追加
+        $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
+        $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+        $result['admin_url'] = "{$protocol}://{$host}/admin";
+        
+        return $result;
+    }
+    
+    return null;
 }

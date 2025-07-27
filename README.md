@@ -73,6 +73,33 @@
 - `PUT /api/update_reservation.php` - 予約情報更新
 - `POST /api/cancel_reservation.php` - 予約キャンセル処理
 
+### 📧 メール通知機能詳細
+
+**基本機能**:
+- PHPのmail()関数を使用したシンプルな実装
+- システム設定画面での通知ON/OFF設定
+- 送信ログ機能によるメール送信状況の追跡
+
+**顧客向け通知**:
+- 予約確認メール（新規予約完了時）
+- 予約変更通知（編集・部屋割り当て時）
+- キャンセル通知（予約キャンセル時の返金案内）
+- チェックイン案内（前日または当日の到着案内）
+- チェックアウト案内（精算・退室手続きの案内）
+- 支払い督促（未払い予約に対する催促メール）
+
+**管理者向け通知**:
+- 新規予約アラート（Web予約受付時の即座な通知）
+- 日次サマリー（当日のチェックイン・アウト予定）
+- 未払いレポート（定期的な支払い状況の報告）
+- システムエラー通知（API障害・データベース異常の報告）
+
+**設定可能項目**:
+- メール機能の有効/無効
+- 送信元メールアドレス・送信者名
+- 管理者メールアドレス
+- 各通知の個別ON/OFF設定
+
 ## 🛠 技術スタック
 
 - **バックエンド**: PHP 7.4+
@@ -234,7 +261,7 @@ yoyaku6/
 - [x] ドラッグ&ドロップ機能
 - [ ] 会計処理機能
 - [ ] レポート・CSV出力機能
-- [ ] メール通知機能
+- [x] メール通知機能
 
 ## 🧪 動作確認
 
@@ -286,6 +313,21 @@ yoyaku6/
 4. キャンセル済み予約の編集制限確認
 5. チェックイン後予約の編集制限確認
 
+### メール通知機能確認
+1. `http://localhost:3000/settings` にアクセス
+2. 「メール通知」タブをクリック
+3. 基本設定の確認
+   - メール機能を有効にする
+   - 送信元メールアドレス・送信者名を設定
+   - 管理者メールアドレスを設定
+4. 通知設定の確認
+   - 顧客向け通知（6種類）の個別ON/OFF
+   - 管理者向け通知（4種類）の個別ON/OFF
+5. 設定保存と動作確認
+   - 設定を保存してメール機能を有効化
+   - 新規予約作成時の自動メール送信確認
+   - サーバーログでメール送信状況を確認
+
 ### API動作確認
 ```bash
 # 予約一覧を確認
@@ -314,6 +356,14 @@ curl -X POST "http://localhost:3000/api/update_reservation.php" \
 curl -X POST "http://localhost:3000/api/cancel_reservation.php" \
   -H "Content-Type: application/json" \
   -d '{"id": 2, "cancel_reason": "お客様都合", "refund_amount": 10000}' | jq .
+
+# メール設定取得
+curl "http://localhost:3000/api/settings/system.php" | jq '.email_enabled, .email_from_address'
+
+# メール設定更新
+curl -X PUT "http://localhost:3000/api/settings/system.php" \
+  -H "Content-Type: application/json" \
+  -d '{"email_enabled": "true", "email_from_address": "noreply@example.com", "email_admin_address": "admin@example.com"}' | jq .
 ```
 
 ## 🐛 トラブルシューティング

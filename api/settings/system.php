@@ -91,7 +91,24 @@ function handleUpdateSettings($pdo) {
         'facility_email',
         'checkin_time',
         'checkout_time',
-        'default_list_limit'
+        'default_list_limit',
+        // メール機能基本設定
+        'email_enabled',
+        'email_from_address',
+        'email_from_name',
+        'email_admin_address',
+        // 顧客向け通知設定
+        'email_reservation_confirmation',
+        'email_reservation_update',
+        'email_cancellation_notice',
+        'email_checkin_reminder',
+        'email_checkout_notice',
+        'email_payment_reminder',
+        // 管理者向け通知設定
+        'email_admin_new_reservation',
+        'email_admin_daily_summary',
+        'email_admin_payment_report',
+        'email_admin_system_error'
     ];
 
     $updates = [];
@@ -206,6 +223,44 @@ function validateSettingValue($key, $value) {
             }
             if ($intValue > 1000) {
                 return 'デフォルト表示件数は1000件以下にしてください';
+            }
+            break;
+
+        // メール機能基本設定のバリデーション
+        case 'email_enabled':
+        case 'email_reservation_confirmation':
+        case 'email_reservation_update':
+        case 'email_cancellation_notice':
+        case 'email_checkin_reminder':
+        case 'email_checkout_notice':
+        case 'email_payment_reminder':
+        case 'email_admin_new_reservation':
+        case 'email_admin_daily_summary':
+        case 'email_admin_payment_report':
+        case 'email_admin_system_error':
+            // ブール値（'true'/'false'文字列）のバリデーション
+            if (!in_array($value, ['true', 'false'])) {
+                return 'この設定は有効（true）または無効（false）で設定してください';
+            }
+            break;
+
+        case 'email_from_address':
+        case 'email_admin_address':
+            if (!empty($value)) {
+                if (!filter_var($value, FILTER_VALIDATE_EMAIL)) {
+                    return '正しいメールアドレス形式で入力してください';
+                }
+                if (strlen($value) > 100) {
+                    return 'メールアドレスは100文字以内にしてください';
+                }
+            }
+            break;
+
+        case 'email_from_name':
+            if (!empty($value)) {
+                if (strlen($value) > 50) {
+                    return '送信者名は50文字以内にしてください';
+                }
             }
             break;
     }
