@@ -115,6 +115,40 @@
 - MySQL 8.0以上
 - Webサーバー（Apache/Nginx）
 
+### 🚀 ロリポップへのデプロイ
+
+ロリポップレンタルサーバーを使用してシステムを公開できます：
+
+#### 事前準備
+- ロリポップアカウント（ライト以上推奨）
+- MySQL利用可能プラン
+- FTPクライアント（FileZilla等）
+
+#### デプロイ手順
+1. **ガイド確認**: `lolipop-deploy-guide.md` を参照
+2. **チェックリスト**: `lolipop-checklist.md` で作業確認
+3. **データベース設定**: `config/database.lolipop.php` をコピーして設定
+4. **ファイルアップロード**: FTPで必要ファイルをアップロード
+
+```bash
+# 必要なファイル構成
+public_html/
+├── api/              # APIエンドポイント
+├── config/           # 設定ファイル
+├── database/         # SQLファイル（参考用）
+├── .htaccess         # ルーティング設定
+├── index.html        # メインページ
+├── admin.html        # 管理画面
+├── monthly.html      # 月間ビュー
+├── settings.html     # 設定画面
+└── daily.html        # 日間ビュー
+```
+
+#### 必要な情報
+- FTPアクセス情報（`ftp.lolipop.jp`）
+- MySQLデータベース情報（`mysql.lolipop.jp`）
+- 独自ドメインまたはサブドメイン
+
 ### 2. データベースの設定
 
 MySQLにログインして、データベースを作成します：
@@ -147,7 +181,7 @@ $database_config = [
 #### 開発環境（PHPビルトインサーバー）
 
 ```bash
-cd public
+
 php -S localhost:8000
 ```
 

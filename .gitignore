@@ -1,48 +1,48 @@
-# IDE関連
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
+# # IDE関連
+# .vscode/
+# .idea/
+# *.swp
+# *.swo
+# *~
 
-# OS関連
-.DS_Store
-Thumbs.db
-desktop.ini
+# # OS関連
+# .DS_Store
+# Thumbs.db
+# desktop.ini
 
-# ログファイル
-*.log
-logs/
-error.log
+# # ログファイル
+# *.log
+# logs/
+# error.log
 
-# 一時ファイル
-tmp/
-temp/
-cache/
+# # 一時ファイル
+# tmp/
+# temp/
+# cache/
 
-# 設定ファイル（本番環境用）
-config/production.php
-.env
-.env.local
-.env.production
+# # 設定ファイル（本番環境用）
+# config/production.php
+# .env
+# .env.local
+# .env.production
 
-# アップロードファイル
-uploads/
-files/
+# # アップロードファイル
+# uploads/
+# files/
 
-# Node.js（将来的にフロントエンドツールを使用する場合）
-node_modules/
-npm-debug.log
-yarn-error.log
+# # Node.js（将来的にフロントエンドツールを使用する場合）
+# node_modules/
+# npm-debug.log
+# yarn-error.log
 
-# Composer（PHPパッケージマネージャー）
-vendor/
-composer.lock
+# # Composer（PHPパッケージマネージャー）
+# vendor/
+# composer.lock
 
-# データベースファイル
-*.sqlite
-*.db
+# # データベースファイル
+# *.sqlite
+# *.db
 
-# バックアップファイル
-*.bak
-backup/ 
+# # バックアップファイル
+# *.bak
+# backup/ 

@@ -4,6 +4,92 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>日間ビュー - 予約管理システム</title>
+    
+    <!-- 認証チェック（最優先読み込み） -->
+    <script>
+        // 認証チェック関数
+        async function checkAuth() {
+            try {
+                const response = await fetch('/api/auth/check.php', {
+                    method: 'GET',
+                    credentials: 'same-origin'
+                });
+                
+                if (!response.ok) {
+                    throw new Error('認証チェックに失敗しました');
+                }
+                
+                const result = await response.json();
+                
+                if (!result.authenticated) {
+                    alert('ログインが必要です。ログイン画面に移動します。');
+                    window.location.href = '/login';
+                    return false;
+                }
+                
+                if (result.user) {
+                    displayUserInfo(result.user);
+                    if (result.csrf_token) {
+                        sessionStorage.setItem('csrf_token', result.csrf_token);
+                    }
+                }
+                
+                return true;
+            } catch (error) {
+                console.error('認証チェックエラー:', error);
+                alert('システムエラーが発生しました。ログイン画面に移動します。');
+                window.location.href = '/login';
+                return false;
+            }
+        }
+        
+        // ユーザー情報表示
+        function displayUserInfo(user) {
+            const userInfoElement = document.querySelector('.user-info');
+            if (userInfoElement) {
+                userInfoElement.innerHTML = `
+                    <span class="user-role">${getRoleDisplayName(user.role)}</span>
+                    <span class="username">${user.username}</span>
+                    <button onclick="logout()" class="logout-btn">ログアウト</button>
+                `;
+            }
+        }
+        
+        // ロール表示名取得
+        function getRoleDisplayName(role) {
+            const roleNames = {
+                'superadmin': 'スーパー管理者',
+                'admin': '管理者',
+                'staff': 'スタッフ'
+            };
+            return roleNames[role] || role;
+        }
+        
+        // ログアウト処理
+        async function logout() {
+            if (!confirm('ログアウトしますか？')) {
+                return;
+            }
+            
+            try {
+                await fetch('/api/auth/logout.php', {
+                    method: 'POST',
+                    credentials: 'same-origin'
+                });
+            } catch (error) {
+                console.error('ログアウトエラー:', error);
+            } finally {
+                sessionStorage.removeItem('csrf_token');
+                window.location.href = '/login';
+            }
+        }
+        
+        // ページ読み込み時に認証チェック実行
+        document.addEventListener('DOMContentLoaded', function() {
+            checkAuth();
+        });
+    </script>
+    
     <style>
         * {
             margin: 0;
@@ -49,6 +135,41 @@
         .header .nav a:hover,
         .header .nav a.active {
             background-color: rgba(255,255,255,0.2);
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-size: 14px;
+        }
+
+        .user-role {
+            background: #e74c3c;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .username {
+            font-weight: bold;
+        }
+
+        .logout-btn {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background-color 0.3s;
+        }
+
+        .logout-btn:hover {
+            background: #c0392b;
         }
 
         .container {
@@ -456,6 +577,9 @@
             <a href="/daily" class="active">日間ビュー</a>
             <a href="/settings">設定</a>
         </nav>
+        <div class="user-info">
+            <!-- ユーザー情報は認証後にJavaScriptで挿入される -->
+        </div>
     </div>
 
     <div class="container">
@@ -660,7 +784,7 @@
                     params.append('keyword', searchKeyword);
                 }
 
-                const response = await fetch(`/api/daily_view.php?${params}`);
+                const response = await fetch(`/osblog45.com/yoyaku/api/daily_view.php?${params}`);
                 
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
@@ -832,7 +956,7 @@
         // 予約を部屋に割り当て
         async function assignReservationToRoom(reservationId, roomId) {
             try {
-                const response = await fetch('/api/assign_reservation.php', {
+                const response = await fetch('/osblog45.com/yoyaku/api/assign_reservation.php', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

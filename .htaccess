@@ -1,0 +1,45 @@
+# ロリポップサーバー用設定
+RewriteEngine On
+
+# セキュリティヘッダー設定
+<IfModule mod_headers.c>
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set X-Content-Type-Options "nosniff"
+</IfModule>
+
+# PHP設定
+php_value display_errors Off
+php_value log_errors On
+php_value error_log /home/users/0/pecori.jp-osblog/logs/php_error.log
+
+# セキュリティ設定（重要なファイルへのアクセス拒否）
+<FilesMatch "\.(sql|md)$">
+    Require all denied
+</FilesMatch>
+
+# configディレクトリの保護
+<Directory "config">
+    Require all denied
+</Directory>
+
+# databaseディレクトリの保護  
+<Directory "database">
+    Require all denied
+</Directory>
+
+# 静的HTMLファイル用ルーティング
+RewriteRule ^admin/?$ admin.html [L]
+RewriteRule ^login/?$ login.html [L]
+RewriteRule ^monthly/?$ monthly.html [L]
+RewriteRule ^settings/?$ settings.html [L]
+RewriteRule ^daily/?$ daily.html [L]
+
+# メインページ
+RewriteRule ^$ index.html [L]
+
+# MIMEタイプ設定
+<IfModule mod_mime.c>
+    AddType application/javascript .js
+    AddType text/css .css
+    AddType text/html .html
+</IfModule>

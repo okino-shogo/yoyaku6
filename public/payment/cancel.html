@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>決済キャンセル - 宿泊予約システム</title>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Hiragino Sans', 'Yu Gothic UI', 'Meiryo', sans-serif;
+            background: linear-gradient(135deg, #ff7b7b, #ff6b6b);
+            color: #333;
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container {
+            max-width: 600px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            padding: 40px;
+            text-align: center;
+            margin: 20px;
+        }
+
+        .cancel-icon {
+            font-size: 64px;
+            color: #dc3545;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            color: #dc3545;
+            font-size: 28px;
+            margin-bottom: 15px;
+        }
+
+        .message {
+            font-size: 16px;
+            margin-bottom: 25px;
+            color: #666;
+        }
+
+        .reservation-info {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 25px 0;
+            text-align: left;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .info-row:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+
+        .info-label {
+            font-weight: bold;
+            color: #555;
+        }
+
+        .info-value {
+            color: #333;
+        }
+
+        .status-notice {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 20px 0;
+            font-size: 14px;
+        }
+
+        .action-buttons {
+            margin-top: 30px;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 12px 24px;
+            margin: 0 10px;
+            background: #4CAF50;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            border: none;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .btn:hover {
+            background: #45a049;
+        }
+
+        .btn-primary {
+            background: #007bff;
+        }
+
+        .btn-primary:hover {
+            background: #0056b3;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #dc3545;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-bottom: 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+
+        .retry-section {
+            background: #e2e3e5;
+            border: 1px solid #d6d8db;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 25px 0;
+        }
+
+        .retry-section h3 {
+            color: #495057;
+            margin-bottom: 15px;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                margin: 10px;
+                padding: 30px 20px;
+            }
+            
+            .action-buttons {
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .btn {
+                margin: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="loading" class="loading">
+            <div class="spinner"></div>
+            <p>予約情報を確認しています...</p>
+        </div>
+
+        <div id="content" style="display: none;">
+            <div class="cancel-icon">❌</div>
+            <h1>決済がキャンセルされました</h1>
+            <p class="message">決済処理がキャンセルされました。予約は保持されています。</p>
+
+            <div class="status-notice">
+                ⚠️ 予約は有効ですが、決済が完了していません。お支払い期限内にお手続きください。
+            </div>
+
+            <div class="reservation-info" id="reservation-info">
+                <!-- 予約情報がここに動的に挿入されます -->
+            </div>
+
+            <div class="retry-section">
+                <h3>🔄 決済を再試行</h3>
+                <p>決済を再度試行する場合は、以下のボタンから再度お手続きください。</p>
+                <button id="retry-payment" class="btn btn-primary" style="margin-top: 15px;">
+                    決済を再試行
+                </button>
+            </div>
+
+            <div class="action-buttons">
+                <a href="/" class="btn">新しい予約を作成</a>
+                <a href="/admin" class="btn">予約一覧を見る</a>
+            </div>
+        </div>
+
+        <div id="error" class="error" style="display: none;">
+            <h2>エラーが発生しました</h2>
+            <p id="error-message"></p>
+            <div class="action-buttons">
+                <a href="/" class="btn">トップページに戻る</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentReservation = null;
+
+        document.addEventListener('DOMContentLoaded', async function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const reservationId = urlParams.get('reservation_id');
+
+            if (!reservationId) {
+                showError('予約IDが見つかりません');
+                return;
+            }
+
+            try {
+                await loadReservationInfo(reservationId);
+            } catch (error) {
+                console.error('Error loading reservation:', error);
+                showError('予約情報の取得に失敗しました');
+            }
+
+            // 決済再試行ボタンのイベントリスナー
+            document.getElementById('retry-payment').addEventListener('click', async function() {
+                if (currentReservation) {
+                    await retryPayment(currentReservation.id, currentReservation.payment_method);
+                }
+            });
+        });
+
+        async function loadReservationInfo(reservationId) {
+            try {
+                const response = await fetch(`/api/list_reservations.php?id=${reservationId}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const reservations = await response.json();
+                
+                if (!reservations || reservations.length === 0) {
+                    throw new Error('予約が見つかりません');
+                }
+
+                const reservation = reservations[0];
+                currentReservation = reservation;
+                displayReservationInfo(reservation);
+
+            } catch (error) {
+                throw new Error('予約情報の取得に失敗しました: ' + error.message);
+            }
+        }
+
+        function displayReservationInfo(reservation) {
+            const reservationInfo = document.getElementById('reservation-info');
+
+            // 宿泊日数を計算
+            const checkinDate = new Date(reservation.checkin_date);
+            const checkoutDate = new Date(reservation.checkout_date);
+            const nights = Math.ceil((checkoutDate - checkinDate) / (1000 * 60 * 60 * 24));
+
+            // 決済方法の表示名
+            const paymentMethodNames = {
+                'stripe_card': 'クレジットカード',
+                'stripe_konbini': 'コンビニ決済',
+                'cash': '現地現金払い'
+            };
+
+            // 支払い期限の表示
+            let paymentDueDateRow = '';
+            if (reservation.payment_due_date) {
+                paymentDueDateRow = `
+                    <div class="info-row">
+                        <span class="info-label">お支払い期限:</span>
+                        <span class="info-value">${formatDate(reservation.payment_due_date)}</span>
+                    </div>
+                `;
+            }
+
+            reservationInfo.innerHTML = `
+                <div class="info-row">
+                    <span class="info-label">予約番号:</span>
+                    <span class="info-value">${reservation.id}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">お名前:</span>
+                    <span class="info-value">${reservation.name}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">チェックイン:</span>
+                    <span class="info-value">${formatDate(reservation.checkin_date)}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">チェックアウト:</span>
+                    <span class="info-value">${formatDate(reservation.checkout_date)}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">宿泊日数:</span>
+                    <span class="info-value">${nights}泊</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">人数:</span>
+                    <span class="info-value">大人${reservation.adults}名${reservation.children > 0 ? ` / 子ども${reservation.children}名` : ''}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">プラン:</span>
+                    <span class="info-value">${reservation.plan_name || reservation.plan}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">お支払い方法:</span>
+                    <span class="info-value">${paymentMethodNames[reservation.payment_method] || reservation.payment_method}</span>
+                </div>
+                ${paymentDueDateRow}
+                <div class="info-row">
+                    <span class="info-label">合計金額:</span>
+                    <span class="info-value">¥${parseInt(reservation.total_amount || reservation.price).toLocaleString()}</span>
+                </div>
+            `;
+
+            // 現金払いの場合は再試行ボタンを非表示
+            if (reservation.payment_method === 'cash') {
+                document.querySelector('.retry-section').style.display = 'none';
+            }
+
+            // ローディングを非表示にしてコンテンツを表示
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('content').style.display = 'block';
+        }
+
+        async function retryPayment(reservationId, paymentMethod) {
+            const retryButton = document.getElementById('retry-payment');
+            const originalText = retryButton.textContent;
+            
+            try {
+                retryButton.disabled = true;
+                retryButton.innerHTML = '<div class="spinner" style="width: 16px; height: 16px; margin-right: 8px; border-width: 2px;"></div>処理中...';
+
+                const response = await fetch('/api/stripe/create-checkout-session.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        reservation_id: reservationId,
+                        payment_method: paymentMethod
+                    })
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    // Stripe Checkoutページにリダイレクト
+                    window.location.href = result.checkout_url;
+                } else {
+                    throw new Error(result.error || '決済ページの作成に失敗しました');
+                }
+            } catch (error) {
+                console.error('Retry payment error:', error);
+                alert('決済の再試行中にエラーが発生しました: ' + error.message);
+            } finally {
+                retryButton.disabled = false;
+                retryButton.textContent = originalText;
+            }
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('ja-JP', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                weekday: 'short'
+            });
+        }
+
+        function showError(message) {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('content').style.display = 'none';
+            document.getElementById('error-message').textContent = message;
+            document.getElementById('error').style.display = 'block';
+        }
+    </script>
+</body>
+</html>

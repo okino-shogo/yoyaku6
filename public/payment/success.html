@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>決済完了 - 宿泊予約システム</title>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Hiragino Sans', 'Yu Gothic UI', 'Meiryo', sans-serif;
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: #333;
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container {
+            max-width: 600px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            padding: 40px;
+            text-align: center;
+            margin: 20px;
+        }
+
+        .success-icon {
+            font-size: 64px;
+            color: #4CAF50;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            color: #4CAF50;
+            font-size: 28px;
+            margin-bottom: 15px;
+        }
+
+        .reservation-info {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 25px 0;
+            text-align: left;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .info-row:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+
+        .info-label {
+            font-weight: bold;
+            color: #555;
+        }
+
+        .info-value {
+            color: #333;
+        }
+
+        .payment-status {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            border-radius: 6px;
+            padding: 12px;
+            margin: 20px 0;
+            font-weight: bold;
+        }
+
+        .action-buttons {
+            margin-top: 30px;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 12px 24px;
+            margin: 0 10px;
+            background: #4CAF50;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            border: none;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .btn:hover {
+            background: #45a049;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #4CAF50;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-bottom: 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+
+        .email-notice {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 20px 0;
+            font-size: 14px;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                margin: 10px;
+                padding: 30px 20px;
+            }
+            
+            .action-buttons {
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .btn {
+                margin: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="loading" class="loading">
+            <div class="spinner"></div>
+            <p>決済情報を確認しています...</p>
+        </div>
+
+        <div id="content" style="display: none;">
+            <div class="success-icon">✅</div>
+            <h1>決済が完了しました</h1>
+            <p>ご予約いただき、ありがとうございます。</p>
+
+            <div class="payment-status" id="payment-status">
+                決済処理が正常に完了しました
+            </div>
+
+            <div class="reservation-info" id="reservation-info">
+                <!-- 予約情報がここに動的に挿入されます -->
+            </div>
+
+            <div class="email-notice">
+                📧 予約確認メールをお送りしました。メールが届かない場合は迷惑メールフォルダもご確認ください。
+            </div>
+
+            <div class="action-buttons">
+                <a href="/" class="btn">新しい予約を作成</a>
+                <a href="/admin" class="btn btn-secondary">予約一覧を見る</a>
+            </div>
+        </div>
+
+        <div id="error" class="error" style="display: none;">
+            <h2>エラーが発生しました</h2>
+            <p id="error-message"></p>
+            <div class="action-buttons">
+                <a href="/" class="btn">トップページに戻る</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const reservationId = urlParams.get('reservation_id');
+
+            if (!reservationId) {
+                showError('予約IDが見つかりません');
+                return;
+            }
+
+            try {
+                await loadReservationInfo(reservationId);
+            } catch (error) {
+                console.error('Error loading reservation:', error);
+                showError('予約情報の取得に失敗しました');
+            }
+        });
+
+        async function loadReservationInfo(reservationId) {
+            try {
+                const response = await fetch(`/api/list_reservations.php?id=${reservationId}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const reservations = await response.json();
+                
+                if (!reservations || reservations.length === 0) {
+                    throw new Error('予約が見つかりません');
+                }
+
+                const reservation = reservations[0];
+                displayReservationInfo(reservation);
+
+            } catch (error) {
+                throw new Error('予約情報の取得に失敗しました: ' + error.message);
+            }
+        }
+
+        function displayReservationInfo(reservation) {
+            const reservationInfo = document.getElementById('reservation-info');
+            const paymentStatus = document.getElementById('payment-status');
+
+            // 決済ステータスに応じたメッセージ
+            let statusMessage = '決済処理が正常に完了しました';
+            let statusClass = '';
+
+            if (reservation.payment_status === 'paid') {
+                statusMessage = '✅ 決済が完了しました';
+                statusClass = 'success';
+            } else if (reservation.payment_method === 'stripe_konbini') {
+                statusMessage = '🏪 コンビニでのお支払いをお待ちしています';
+                statusClass = 'pending';
+            }
+
+            paymentStatus.textContent = statusMessage;
+            paymentStatus.className = `payment-status ${statusClass}`;
+
+            // 宿泊日数を計算
+            const checkinDate = new Date(reservation.checkin_date);
+            const checkoutDate = new Date(reservation.checkout_date);
+            const nights = Math.ceil((checkoutDate - checkinDate) / (1000 * 60 * 60 * 24));
+
+            // 決済方法の表示名
+            const paymentMethodNames = {
+                'stripe_card': 'クレジットカード',
+                'stripe_konbini': 'コンビニ決済',
+                'cash': '現地現金払い'
+            };
+
+            reservationInfo.innerHTML = `
+                <div class="info-row">
+                    <span class="info-label">予約番号:</span>
+                    <span class="info-value">${reservation.id}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">お名前:</span>
+                    <span class="info-value">${reservation.name}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">チェックイン:</span>
+                    <span class="info-value">${formatDate(reservation.checkin_date)}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">チェックアウト:</span>
+                    <span class="info-value">${formatDate(reservation.checkout_date)}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">宿泊日数:</span>
+                    <span class="info-value">${nights}泊</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">人数:</span>
+                    <span class="info-value">大人${reservation.adults}名${reservation.children > 0 ? ` / 子ども${reservation.children}名` : ''}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">プラン:</span>
+                    <span class="info-value">${reservation.plan_name || reservation.plan}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">お支払い方法:</span>
+                    <span class="info-value">${paymentMethodNames[reservation.payment_method] || reservation.payment_method}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">合計金額:</span>
+                    <span class="info-value">¥${parseInt(reservation.total_amount || reservation.price).toLocaleString()}</span>
+                </div>
+            `;
+
+            // ローディングを非表示にしてコンテンツを表示
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('content').style.display = 'block';
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('ja-JP', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                weekday: 'short'
+            });
+        }
+
+        function showError(message) {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('content').style.display = 'none';
+            document.getElementById('error-message').textContent = message;
+            document.getElementById('error').style.display = 'block';
+        }
+    </script>
+</body>
+</html>

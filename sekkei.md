@@ -49,9 +49,360 @@
 * ドラッグ＆ドロップで予約の移動・割当を可能に
 * 全操作はHTTP JSON API経由で実行
 
-### 2.2 モジュール別詳細
+### 2.2 セキュリティ設計
 
-#### 2.2.1 月間ビュー (`monthlyRoomView`)
+#### 2.2.1 セキュリティ要件概要
+
+**目的**: 宿泊業として顧客の個人情報を取り扱う責任を果たし、法的コンプライアンスを満たしながら、システムの機密性・完全性・可用性を確保する。
+
+**適用範囲**: 
+- Webアプリケーション全体（フロントエンド・バックエンド・データベース）
+- 顧客個人情報（氏名・電話番号・メールアドレス・住所）
+- 予約情報・決済情報・システム設定情報
+
+**法的コンプライアンス**:
+- 個人情報保護法（日本）
+- 旅館業法（宿泊者名簿の適切な管理）
+- GDPR（将来の国際顧客対応）
+- PCI DSS（決済機能実装時）
+
+#### 2.2.2 認証・認可設計
+
+**認証システム**:
+```json
+{
+  "authenticationMethods": {
+    "adminLogin": {
+      "method": "パスワード認証 + セッション管理",
+      "sessionTimeout": "8時間（業務時間考慮）",
+      "passwordPolicy": {
+        "minLength": 12,
+        "complexity": "英数字記号混在必須",
+        "rotation": "90日ごと",
+        "lockout": "5回失敗で30分ロック"
+      }
+    },
+    "customerAuth": {
+      "method": "予約番号 + 電話番号認証",
+      "sessionTimeout": "30分",
+      "rateLimiting": "10回/時間"
+    }
+  },
+  "authorization": {
+    "roles": ["superadmin", "admin", "staff", "customer"],
+    "permissions": {
+      "superadmin": ["ALL"],
+      "admin": ["reservations.*", "settings.*", "reports.*"],
+      "staff": ["reservations.read", "reservations.update", "customers.read"],
+      "customer": ["reservations.own.read", "reservations.own.update"]
+    }
+  }
+}
+```
+
+**実装仕様**:
+```php
+// セッション設定
+session_set_cookie_params([
+    'lifetime' => 28800, // 8時間
+    'path' => '/',
+    'domain' => $_SERVER['HTTP_HOST'],
+    'secure' => true,
+    'httponly' => true,
+    'samesite' => 'Strict'
+]);
+
+// 認証チェックミドルウェア
+function requireAuth($requiredRole = 'staff') {
+    if (!isset($_SESSION['user_id']) || 
+        !hasPermission($_SESSION['role'], $requiredRole)) {
+        http_response_code(401);
+        sendJsonResponse(['error' => '認証が必要です']);
+    }
+}
+```
+
+#### 2.2.3 暗号化設計
+
+**個人情報暗号化**:
+```json
+{
+  "encryptionScope": {
+    "customerData": {
+      "fields": ["name", "phone", "email", "address"],
+      "algorithm": "AES-256-GCM",
+      "keyManagement": "環境変数 + Key Rotation",
+      "implementation": "カラムレベル暗号化"
+    },
+    "paymentData": {
+      "fields": ["credit_card_number", "cvv"],
+      "algorithm": "AES-256-GCM + トークン化",
+      "compliance": "PCI DSS Level 1",
+      "storage": "外部決済代行業者"
+    }
+  },
+  "databaseEncryption": {
+    "tableLevel": "MySQL TDE (Transparent Data Encryption)",
+    "backupEncryption": "mysqldump --single-transaction --routines --triggers | gpg --cipher-algo AES256",
+    "keyRotation": "年2回（春・秋）"
+  }
+}
+```
+
+**実装例**:
+```php
+class PersonalDataCrypto {
+    private static $key;
+    
+    public static function encrypt($plaintext) {
+        $key = self::getKey();
+        $iv = random_bytes(12); // GCM用IV
+        $ciphertext = openssl_encrypt($plaintext, 'aes-256-gcm', $key, OPENSSL_RAW_DATA, $iv, $tag);
+        return base64_encode($iv . $tag . $ciphertext);
+    }
+    
+    public static function decrypt($encrypted) {
+        $data = base64_decode($encrypted);
+        $iv = substr($data, 0, 12);
+        $tag = substr($data, 12, 16);
+        $ciphertext = substr($data, 28);
+        $key = self::getKey();
+        return openssl_decrypt($ciphertext, 'aes-256-gcm', $key, OPENSSL_RAW_DATA, $iv, $tag);
+    }
+    
+    private static function getKey() {
+        return self::$key ?: hash('sha256', $_ENV['PERSONAL_DATA_KEY'], true);
+    }
+}
+```
+
+#### 2.2.4 Web脆弱性対策
+
+**CSRF対策**:
+```json
+{
+  "csrfProtection": {
+    "tokenGeneration": "cryptographically secure random",
+    "tokenStorage": "セッション + hiddenフィールド",
+    "tokenValidation": "すべてのPOST/PUT/DELETE",
+    "tokenRotation": "フォーム表示ごと",
+    "implementation": "全APIエンドポイントで必須"
+  }
+}
+```
+
+**XSS対策**:
+```php
+// 出力エスケープ
+function h($str) {
+    return htmlspecialchars($str, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+}
+
+// JSONレスポンス
+function sendJsonResponse($data) {
+    header('Content-Type: application/json; charset=utf-8');
+    header('X-Content-Type-Options: nosniff');
+    echo json_encode($data, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP);
+}
+```
+
+**SQLインジェクション対策（実装済み強化）**:
+```php
+// 現在の実装を継続・強化
+$pdo = new PDO($dsn, $user, $pass, [
+    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+    PDO::ATTR_EMULATE_PREPARES => false,  // 真のプリペアドステートメント
+    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+    PDO::MYSQL_ATTR_MULTI_STATEMENTS => false  // 複文実行禁止
+]);
+```
+
+#### 2.2.5 通信セキュリティ
+
+**HTTPS強制設定**:
+```apache
+# .htaccess
+RewriteEngine On
+RewriteCond %{HTTPS} !=on
+RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+# セキュリティヘッダー
+Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+Header always set X-Content-Type-Options "nosniff"
+Header always set X-Frame-Options "SAMEORIGIN"
+Header always set X-XSS-Protection "1; mode=block"
+Header always set Referrer-Policy "strict-origin-when-cross-origin"
+```
+
+**Content Security Policy**:
+```php
+header("Content-Security-Policy: " . implode('; ', [
+    "default-src 'self'",
+    "script-src 'self' 'unsafe-inline'",
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data:",
+    "font-src 'self'",
+    "connect-src 'self'",
+    "form-action 'self'",
+    "frame-ancestors 'none'",
+    "base-uri 'self'"
+]));
+```
+
+#### 2.2.6 入力検証・サニタイゼーション
+
+**多層防御バリデーション**:
+```json
+{
+  "validationLayers": {
+    "frontend": {
+      "html5": "required, pattern, min/max",
+      "javascript": "リアルタイム検証 + UX向上",
+      "purpose": "ユーザビリティ向上"
+    },
+    "backend": {
+      "php": "厳密な型チェック + ホワイトリスト",
+      "database": "制約チェック",
+      "purpose": "セキュリティ確保"
+    }
+  },
+  "sanitization": {
+    "customerName": "trim + 全角英数字許可 + 50文字制限",
+    "phone": "数字・ハイフンのみ + 20文字制限",
+    "email": "filter_var(FILTER_VALIDATE_EMAIL) + 100文字制限",
+    "address": "HTML除去 + 200文字制限",
+    "notes": "HTML除去 + 1000文字制限"
+  }
+}
+```
+
+#### 2.2.7 ログ・監査設計
+
+**セキュリティログ**:
+```php
+class SecurityLogger {
+    public static function logAuthAttempt($username, $ip, $success) {
+        $level = $success ? 'INFO' : 'WARNING';
+        error_log(sprintf(
+            '[%s] AUTH_%s: user=%s, ip=%s, timestamp=%s',
+            $level,
+            $success ? 'SUCCESS' : 'FAILURE',
+            $username,
+            $ip,
+            date('Y-m-d H:i:s')
+        ));
+    }
+    
+    public static function logDataAccess($table, $action, $userId, $recordId = null) {
+        error_log(sprintf(
+            '[AUDIT] DATA_ACCESS: table=%s, action=%s, user_id=%s, record_id=%s, ip=%s',
+            $table,
+            $action,
+            $userId,
+            $recordId,
+            $_SERVER['REMOTE_ADDR']
+        ));
+    }
+}
+```
+
+**監査対象操作**:
+- ログイン・ログアウト・認証失敗
+- 個人情報の閲覧・編集・削除
+- 重要設定の変更
+- 不正アクセス試行
+
+#### 2.2.8 CAPTCHA・レート制限
+
+**CAPTCHA実装**:
+```html
+<!-- Google reCAPTCHA v3 -->
+<script src="https://www.google.com/recaptcha/api.js?render=YOUR_SITE_KEY"></script>
+<script>
+grecaptcha.ready(function() {
+    grecaptcha.execute('YOUR_SITE_KEY', {action: 'reservation'}).then(function(token) {
+        document.getElementById('recaptcha_token').value = token;
+    });
+});
+</script>
+```
+
+**レート制限**:
+```php
+class RateLimiter {
+    public static function checkLimit($key, $maxAttempts = 10, $timeWindow = 3600) {
+        $redis = new Redis();
+        $redis->connect('127.0.0.1', 6379);
+        
+        $current = $redis->get($key) ?: 0;
+        if ($current >= $maxAttempts) {
+            throw new Exception('レート制限に達しました');
+        }
+        
+        $redis->incr($key);
+        $redis->expire($key, $timeWindow);
+    }
+}
+```
+
+#### 2.2.9 セキュリティ運用
+
+**定期セキュリティタスク**:
+```json
+{
+  "dailyTasks": [
+    "ログ監視（不正アクセス・異常パターン）",
+    "SSL証明書期限チェック",
+    "システムリソース監視"
+  ],
+  "weeklyTasks": [
+    "セキュリティパッチ確認・適用",
+    "バックアップデータ整合性確認",
+    "アクセス権限レビュー"
+  ],
+  "monthlyTasks": [
+    "脆弱性スキャン実行",
+    "パスワードポリシー遵守確認",
+    "セキュリティインシデント分析"
+  ],
+  "quarterlyTasks": [
+    "暗号化キーローテーション",
+    "災害復旧テスト",
+    "セキュリティ研修実施"
+  ]
+}
+```
+
+**インシデント対応計画**:
+1. **検出**: 監視システム・ログ分析・外部通報
+2. **封じ込め**: 影響範囲特定・サービス停止判断
+3. **根絶**: 脆弱性修正・侵入経路遮断
+4. **復旧**: データ復元・サービス再開
+5. **事後対応**: 原因分析・再発防止策・関係者報告
+
+#### 2.2.10 実装ロードマップ
+
+**フェーズ1（緊急：1週間以内）**:
+- [ ] HTTPS強制設定
+- [ ] 管理画面認証実装
+- [ ] CSRF対策実装
+- [ ] 個人情報暗号化開始
+
+**フェーズ2（高優先：1ヶ月以内）**:
+- [ ] XSS対策完全実装
+- [ ] セキュリティヘッダー設定
+- [ ] 監査ログ実装
+- [ ] バックアップ暗号化
+
+**フェーズ3（中優先：3ヶ月以内）**:
+- [ ] CAPTCHA実装
+- [ ] レート制限実装
+- [ ] 脆弱性スキャン導入
+- [ ] セキュリティ運用体制確立
+
+### 2.3 モジュール別詳細
+
+#### 2.3.1 月間ビュー (`monthlyRoomView`)
 
 > 部屋ごとに1ヶ月分の予約状況をカレンダー形式で表示し、予約割当・編集操作を可能にする
 
@@ -65,7 +416,7 @@
 8. **カレンダー領域**: 各部屋×日付マスに予約を表示（名前＋プラン名）
 9. **予約ブロック**: 複数セルをまたぐ1ブロック表示、ドラッグ操作可能、状態色・アイコン・ラベル付き
 
-#### 2.2.1.1 改善された予約表示仕様 (実装済み)
+#### 2.3.1.1 改善された予約表示仕様 (実装済み)
 
 **横跨ぎブロック表示**:
 - **複数日予約**: チェックイン日から連続した一つの横長ブロックで表示
@@ -176,7 +527,7 @@
   * ビュー関連キーには `view`、フィルター関連キーには `filter` のプレフィックスを付与。
   * 例: `viewTopTabs`, `filterKeywordInput`, `calendarControlsPrev`, `gridRows`, `cellReservedText`
 
-#### 2.2.2 日間ビュー (`dailyRoomGrid`)
+#### 2.3.2 日間ビュー (`dailyRoomGrid`)
 
 > 当日の部屋配置図のように部屋をグリッド表示し、稼働状況把握と変更操作を行う
 
@@ -303,7 +654,7 @@ Request: form-data or JSON
 Response: redirect to thank-you or JSON { success: true }
 ```
 
-#### 2.2.4 APIエンドポイント一覧
+#### 2.3.3 APIエンドポイント一覧
 
 以下のエンドポイントについて、**リクエスト例／成功レスポンス例／エラー例**を併記します。
 
@@ -526,7 +877,7 @@ Content-Type: application/json
 {"error":"予約IDが存在しません"}
 ```
 
-#### 2.2.5 DB設計 (MySQL)#### 2.2.5 DB設計 (MySQL)
+#### 2.3.4 DB設計 (MySQL)
 
 ````sql
 -- テーブル：room_groups（部屋グループ）

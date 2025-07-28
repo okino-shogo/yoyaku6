@@ -52,6 +52,13 @@ switch ($path) {
         readfile(__DIR__ . '/public/index.html');
         break;
         
+    case '/login':
+    case '/login.html':
+        // ログイン画面へのアクセス
+        header('Content-Type: text/html; charset=utf-8');
+        readfile(__DIR__ . '/public/login.html');
+        break;
+        
     case '/admin':
     case '/admin.html':
         // 管理画面へのアクセス
@@ -78,6 +85,18 @@ switch ($path) {
         // 日間ビューへのアクセス
         header('Content-Type: text/html; charset=utf-8');
         readfile(__DIR__ . '/public/daily.html');
+        break;
+    
+    case '/payment/success':
+        // 決済完了ページへのアクセス
+        header('Content-Type: text/html; charset=utf-8');
+        readfile(__DIR__ . '/public/payment/success.html');
+        break;
+    
+    case '/payment/cancel':
+        // 決済キャンセルページへのアクセス
+        header('Content-Type: text/html; charset=utf-8');
+        readfile(__DIR__ . '/public/payment/cancel.html');
         break;
         
     case '/reservation':

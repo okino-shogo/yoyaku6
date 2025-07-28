@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>宿泊予約フォーム</title>
+    
+    <!-- Google reCAPTCHA v3 -->
+    <script src="https://www.google.com/recaptcha/api.js?render=6LcexampleKeyForDevelopment"></script>
+    
     <style>
         * {
             margin: 0;
@@ -75,6 +79,76 @@
             border-radius: 4px;
             font-size: 16px;
             transition: border-color 0.3s;
+        }
+
+        /* 決済方法関連のスタイル */
+        .payment-info {
+            margin-top: 10px;
+        }
+
+        .payment-note {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 12px;
+            margin-top: 8px;
+            font-size: 14px;
+            color: #495057;
+        }
+
+        .payment-note p {
+            margin: 0;
+        }
+
+        /* 料金表示のスタイル */
+        .price-summary {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+
+        .price-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .price-item.total {
+            font-weight: bold;
+            font-size: 16px;
+            border-top: 1px solid #dee2e6;
+            padding-top: 8px;
+            margin-top: 12px;
+            margin-bottom: 0;
+        }
+
+        /* 決済処理中のローディング */
+        .payment-loading {
+            text-align: center;
+            padding: 20px;
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 4px;
+            margin: 20px 0;
+        }
+
+        .payment-loading .spinner {
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #4CAF50;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
 
         input:focus,
@@ -239,6 +313,47 @@
                 <div id="notes-error" class="error"></div>
             </div>
 
+            <!-- 決済方法選択 -->
+            <div class="form-group">
+                <label for="paymentMethod">お支払い方法 <span class="required">*</span></label>
+                <select id="paymentMethod" name="paymentMethod" required>
+                    <option value="">選択してください</option>
+                    <option value="stripe_card">クレジットカード決済（即時）</option>
+                    <option value="stripe_konbini">コンビニ決済（後払い）</option>
+                    <option value="cash">現地現金払い</option>
+                </select>
+                <div id="paymentMethod-error" class="error"></div>
+                <div class="payment-info" id="payment-info">
+                    <div class="payment-note" id="card-note" style="display: none;">
+                        <p>📱 クレジットカード決済を選択された場合、次のページでカード情報を入力いただきます。</p>
+                    </div>
+                    <div class="payment-note" id="konbini-note" style="display: none;">
+                        <p>🏪 コンビニ決済を選択された場合、お支払い番号をメールでお送りします。7日以内にお支払いください。</p>
+                    </div>
+                    <div class="payment-note" id="cash-note" style="display: none;">
+                        <p>💰 チェックイン時に現金でお支払いいただきます。</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 料金表示エリア -->
+            <div class="price-summary" id="price-summary" style="display: none;">
+                <div class="price-item">
+                    <span>基本料金:</span>
+                    <span id="base-price">¥0</span>
+                </div>
+                <div class="price-item total">
+                    <span>合計金額:</span>
+                    <span id="total-price">¥0</span>
+                </div>
+            </div>
+
+            <!-- CSRF対策 -->
+            <input type="hidden" id="csrf_token" name="csrf_token" value="">
+            
+            <!-- CAPTCHA対策 -->
+            <input type="hidden" id="recaptcha_token" name="recaptcha_token" value="">
+
             <button type="submit" class="btn" id="submit-btn">予約を送信</button>
         </form>
     </div>
@@ -249,6 +364,12 @@
             const submitBtn = document.getElementById('submit-btn');
             const loading = document.getElementById('loading');
             const successMessage = document.getElementById('success-message');
+
+            // CSRFトークン取得
+            fetchCsrfToken();
+
+            // CAPTCHAトークン取得
+            getCaptchaToken();
 
             // 今日の日付を最小値に設定
             const today = new Date().toISOString().split('T')[0];
@@ -264,6 +385,32 @@
                 if (checkoutDate && checkoutDate <= checkinDate) {
                     document.getElementById('checkoutDate').value = '';
                 }
+                
+                calculatePrice();
+            });
+
+            // チェックアウト日、人数、プランが変更されたら料金を再計算
+            document.getElementById('checkoutDate').addEventListener('change', calculatePrice);
+            document.getElementById('adults').addEventListener('change', calculatePrice);
+            document.getElementById('children').addEventListener('change', calculatePrice);
+            document.getElementById('plan').addEventListener('change', calculatePrice);
+
+            // 決済方法が変更されたら説明を表示
+            document.getElementById('paymentMethod').addEventListener('change', function() {
+                const paymentMethod = this.value;
+                const paymentNotes = document.querySelectorAll('.payment-note');
+                
+                // 全ての説明を非表示
+                paymentNotes.forEach(note => note.style.display = 'none');
+                
+                // 選択された決済方法の説明を表示
+                if (paymentMethod === 'stripe_card') {
+                    document.getElementById('card-note').style.display = 'block';
+                } else if (paymentMethod === 'stripe_konbini') {
+                    document.getElementById('konbini-note').style.display = 'block';
+                } else if (paymentMethod === 'cash') {
+                    document.getElementById('cash-note').style.display = 'block';
+                }
             });
 
             form.addEventListener('submit', async function(e) {
@@ -276,6 +423,9 @@
                     el.textContent = '';
                 });
 
+                // CAPTCHAトークン再取得
+                await refreshCaptchaBeforeSubmit();
+
                 const formData = new FormData(form);
                 const data = Object.fromEntries(formData);
 
@@ -284,6 +434,7 @@
                 submitBtn.disabled = true;
 
                 try {
+                    // 予約作成
                     const response = await fetch('/api/create_reservation.php', {
                         method: 'POST',
                         headers: {
@@ -295,29 +446,221 @@
                     const result = await response.json();
 
                     if (response.ok && result.success) {
-                        successMessage.textContent = `予約が完了しました！予約番号: ${result.reservationId}`;
-                        successMessage.style.display = 'block';
-                        form.reset();
-                        
-                        // 成功時はページトップにスクロール
-                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                        const reservationId = result.reservationId;
+                        const paymentMethod = data.paymentMethod;
+
+                        // 決済方法に応じた処理
+                        if (paymentMethod === 'stripe_card' || paymentMethod === 'stripe_konbini') {
+                            // Stripe決済の場合はCheckout Sessionを作成
+                            await handleStripePayment(reservationId, paymentMethod);
+                        } else {
+                            // 現金払いの場合はそのまま完了
+                            showSuccessMessage(`予約が完了しました！予約番号: ${reservationId}`);
+                            form.reset();
+                            calculatePrice(); // 料金表示をリセット
+                        }
                     } else {
                         throw new Error(result.error || '予約処理中にエラーが発生しました');
                     }
                 } catch (error) {
                     console.error('Error:', error);
-                    
-                    // エラーメッセージを表示
-                    const generalError = document.createElement('div');
-                    generalError.className = 'error';
-                    generalError.style.display = 'block';
-                    generalError.textContent = error.message;
-                    form.insertBefore(generalError, form.firstChild);
+                    showError(error.message);
                 } finally {
                     loading.style.display = 'none';
                     submitBtn.disabled = false;
                 }
             });
+
+            // Stripe決済処理
+            async function handleStripePayment(reservationId, paymentMethod) {
+                try {
+                    // 決済処理中メッセージを表示
+                    showPaymentLoading('決済ページを準備しています...');
+
+                    const response = await fetch('/api/stripe/create-checkout-session.php', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            reservation_id: reservationId,
+                            payment_method: paymentMethod
+                        })
+                    });
+
+                    const result = await response.json();
+
+                    if (response.ok && result.success) {
+                        // Stripe Checkoutページにリダイレクト
+                        window.location.href = result.checkout_url;
+                    } else {
+                        throw new Error(result.error || '決済ページの作成に失敗しました');
+                    }
+                } catch (error) {
+                    console.error('Stripe payment error:', error);
+                    showError('決済処理中にエラーが発生しました: ' + error.message);
+                }
+            }
+
+            // 料金計算機能
+            async function calculatePrice() {
+                const checkinDate = document.getElementById('checkinDate').value;
+                const checkoutDate = document.getElementById('checkoutDate').value;
+                const adults = parseInt(document.getElementById('adults').value) || 0;
+                const children = parseInt(document.getElementById('children').value) || 0;
+                const plan = document.getElementById('plan').value;
+
+                const priceSummary = document.getElementById('price-summary');
+                const basePriceEl = document.getElementById('base-price');
+                const totalPriceEl = document.getElementById('total-price');
+
+                // 必要な項目が入力されていない場合は非表示
+                if (!checkinDate || !checkoutDate || !plan || adults === 0) {
+                    priceSummary.style.display = 'none';
+                    return;
+                }
+
+                try {
+                    // プラン料金を取得
+                    const planResponse = await fetch('/api/plans.php');
+                    const plans = await planResponse.json();
+                    const selectedPlan = plans.find(p => p.name === plan);
+
+                    if (!selectedPlan) {
+                        priceSummary.style.display = 'none';
+                        return;
+                    }
+
+                    // 宿泊日数を計算
+                    const checkin = new Date(checkinDate);
+                    const checkout = new Date(checkoutDate);
+                    const nights = Math.ceil((checkout - checkin) / (1000 * 60 * 60 * 24));
+
+                    if (nights <= 0) {
+                        priceSummary.style.display = 'none';
+                        return;
+                    }
+
+                    // 料金計算
+                    const basePrice = parseFloat(selectedPlan.price);
+                    const totalGuests = adults + children;
+                    const totalAmount = basePrice * totalGuests * nights;
+
+                    // 表示更新
+                    basePriceEl.textContent = `¥${basePrice.toLocaleString()} × ${totalGuests}名 × ${nights}泊`;
+                    totalPriceEl.textContent = `¥${totalAmount.toLocaleString()}`;
+                    priceSummary.style.display = 'block';
+
+                } catch (error) {
+                    console.error('Price calculation error:', error);
+                    priceSummary.style.display = 'none';
+                }
+            }
+
+            // 成功メッセージ表示
+            function showSuccessMessage(message) {
+                successMessage.textContent = message;
+                successMessage.style.display = 'block';
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+
+            // エラーメッセージ表示
+            function showError(message) {
+                const generalError = document.createElement('div');
+                generalError.className = 'error';
+                generalError.style.display = 'block';
+                generalError.textContent = message;
+                form.insertBefore(generalError, form.firstChild);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+
+            // 決済処理中メッセージ表示
+            function showPaymentLoading(message) {
+                const existingLoading = document.querySelector('.payment-loading');
+                if (existingLoading) {
+                    existingLoading.remove();
+                }
+
+                const loadingDiv = document.createElement('div');
+                loadingDiv.className = 'payment-loading';
+                loadingDiv.innerHTML = `
+                    <div class="spinner"></div>
+                    ${message}
+                `;
+                form.insertBefore(loadingDiv, form.firstChild);
+            }
+
+            // CSRFトークン取得関数
+            async function fetchCsrfToken() {
+                try {
+                    const response = await fetch('/api/auth/csrf_token.php', {
+                        method: 'GET',
+                        credentials: 'same-origin'
+                    });
+                    
+                    if (response.ok) {
+                        const result = await response.json();
+                        if (result.csrf_token) {
+                            document.getElementById('csrf_token').value = result.csrf_token;
+                        }
+                    }
+                } catch (error) {
+                    console.error('CSRFトークン取得エラー:', error);
+                    // エラーの場合は空のトークンのまま（任意）
+                }
+            }
+
+            // CAPTCHAトークン取得関数
+            async function getCaptchaToken() {
+                try {
+                    // 開発環境では実際のCAPTCHAをスキップ
+                    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                        document.getElementById('recaptcha_token').value = 'development_bypass_token';
+                        return;
+                    }
+
+                    // reCAPTCHA v3トークン取得
+                    if (typeof grecaptcha !== 'undefined') {
+                        grecaptcha.ready(function() {
+                            grecaptcha.execute('6LcexampleKeyForDevelopment', {action: 'reservation'}).then(function(token) {
+                                document.getElementById('recaptcha_token').value = token;
+                            }).catch(function(error) {
+                                console.error('CAPTCHAトークン取得エラー:', error);
+                                // エラーの場合は空のトークンのまま
+                            });
+                        });
+                    }
+                } catch (error) {
+                    console.error('CAPTCHA初期化エラー:', error);
+                    // エラーの場合は空のトークンのまま
+                }
+            }
+
+            // フォーム送信前にCAPTCHAトークンを再取得
+            async function refreshCaptchaBeforeSubmit() {
+                try {
+                    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                        return Promise.resolve();
+                    }
+
+                    if (typeof grecaptcha !== 'undefined') {
+                        return new Promise((resolve) => {
+                            grecaptcha.ready(function() {
+                                grecaptcha.execute('6LcexampleKeyForDevelopment', {action: 'reservation'}).then(function(token) {
+                                    document.getElementById('recaptcha_token').value = token;
+                                    resolve();
+                                }).catch(function(error) {
+                                    console.error('CAPTCHA再取得エラー:', error);
+                                    resolve(); // エラーでも続行
+                                });
+                            });
+                        });
+                    }
+                } catch (error) {
+                    console.error('CAPTCHA再取得エラー:', error);
+                    return Promise.resolve();
+                }
+            }
         });
     </script>
 </body>
