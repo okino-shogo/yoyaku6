@@ -109,53 +109,254 @@
 
 ## 📦 セットアップ
 
-### 1. 必要な環境
-
-- PHP 7.4以上
-- MySQL 8.0以上
-- Webサーバー（Apache/Nginx）
-
-### 2. データベースの設定
-
-MySQLにログインして、データベースを作成します：
+### 🚀 クイックスタート（5分で起動）
 
 ```bash
-mysql -u root -p
+# 1. リポジトリをクローン
+git clone https://github.com/your-username/yoyaku6.git
+cd yoyaku6
+
+# 2. データベースを作成・初期化
+mysql -u root -p < database/init.sql
+mysql -u root -p yoyaku_system < database/create_tables.sql
+mysql -u root -p yoyaku_system < database/settings_extension.sql
+
+# 3. データベース接続設定をコピー
+cp config/database.php.example config/database.php
+# config/database.php を編集してデータベース情報を設定
+
+# 4. 開発サーバー起動
+php -S localhost:8000 index.php
+
+# 5. ブラウザでアクセス
+# http://localhost:8000 - 顧客向け予約フォーム
+# http://localhost:8000/admin - 管理画面
+# http://localhost:8000/monthly - 月間ビュー
+# http://localhost:8000/daily - 日間ビュー
+# http://localhost:8000/settings - 設定画面
 ```
 
-```sql
-source database/init.sql
+### 📋 協力開発のための情報
+
+**開発環境の統一:**
+- PHP 8.0+ 推奨
+- MySQL 8.0+ または MariaDB 10.4+
+- Git 2.30+
+
+**ブランチ戦略:**
+- `main` - 本番リリース用
+- `develop` - 開発統合ブランチ
+- `feature/*` - 機能開発用
+- `hotfix/*` - 緊急修正用
+
+**コミットメッセージ規約:**
+```
+feat: 新機能追加
+fix: バグ修正
+docs: ドキュメント更新
+style: コードフォーマット
+refactor: リファクタリング
+test: テスト追加・修正
+chore: その他の変更
 ```
 
-### 3. データベース接続設定
+**プルリクエスト手順:**
+1. `develop` ブランチから `feature/機能名` ブランチを作成
+2. 機能開発・テスト実施
+3. `develop` ブランチへプルリクエスト作成
+4. コードレビュー後マージ
 
-`config/database.php` ファイルを編集して、データベース接続情報を設定してください：
+### 📋 詳細セットアップ手順
 
+#### 1. 必要な環境
+
+**必須要件:**
+- PHP 7.4以上（推奨: PHP 8.0+）
+- MySQL 8.0以上（または MariaDB 10.4+）
+- Git
+
+**開発環境での確認方法:**
+```bash
+# PHPバージョン確認
+php --version
+
+# MySQLバージョン確認
+mysql --version
+
+# 必要なPHP拡張機能の確認
+php -m | grep -E "(pdo|mysql|json|mbstring)"
+```
+
+#### 2. プロジェクトのクローン
+
+```bash
+# HTTPSでクローン
+git clone https://github.com/your-username/yoyaku6.git
+cd yoyaku6
+
+# または SSHでクローン
+git clone git@github.com:your-username/yoyaku6.git
+cd yoyaku6
+```
+
+#### 3. データベースの設定
+
+**3.1 MySQLサービスの起動確認**
+```bash
+# macOS (Homebrew)
+brew services start mysql
+
+# Ubuntu/Debian
+sudo systemctl start mysql
+
+# Windows (XAMPP)
+# XAMPPコントロールパネルからMySQLを起動
+```
+
+**3.2 データベースとテーブルの作成**
+```bash
+# データベース作成
+mysql -u root -p < database/init.sql
+
+# テーブル作成と初期データ投入
+mysql -u root -p yoyaku_system < database/create_tables.sql
+
+# 設定機能用テーブル追加
+mysql -u root -p yoyaku_system < database/settings_extension.sql
+```
+
+**3.3 データベース接続設定**
+
+設定ファイルをコピーして編集：
+```bash
+# 設定ファイルのコピー（初回のみ）
+cp config/database.php.example config/database.php
+```
+
+`config/database.php` を編集：
 ```php
+<?php
 $database_config = [
     'host' => 'localhost',
     'dbname' => 'yoyaku_system',
-    'username' => 'your_username',    // <- 変更
-    'password' => 'your_password',    // <- 変更
+    'username' => 'root',           // ← あなたのMySQLユーザー名
+    'password' => 'your_password',  // ← あなたのMySQLパスワード
     'charset' => 'utf8mb4',
-    // ...
+    'options' => [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+        PDO::ATTR_EMULATE_PREPARES => false,
+    ]
 ];
 ```
 
-### 4. Webサーバーの起動
+#### 4. 開発サーバーの起動
 
-#### 開発環境（PHPビルトインサーバー）
-
+**方法1: PHPビルトインサーバー（推奨）**
 ```bash
-cd public
-php -S localhost:8000
+# プロジェクトルートで実行
+php -S localhost:8000 index.php
 ```
 
-ブラウザで `http://localhost:8000` にアクセスして予約フォームを確認できます。
+**方法2: 異なるポートで起動**
+```bash
+# ポート8000が使用中の場合
+php -S localhost:8001 index.php
+```
 
-#### 本番環境（Apache/Nginx）
+**方法3: 外部からアクセス可能にする**
+```bash
+# 同一ネットワーク内の他のデバイスからアクセス可能
+php -S 0.0.0.0:8000 index.php
+```
 
-Webサーバーのドキュメントルートを `public/` ディレクトリに設定してください。
+#### 5. 動作確認
+
+**基本画面へのアクセス:**
+- 🏠 **顧客向け予約フォーム**: http://localhost:8000
+- 👨‍💼 **管理画面**: http://localhost:8000/admin
+- 📅 **月間ビュー**: http://localhost:8000/monthly
+- 🏨 **日間ビュー**: http://localhost:8000/daily
+- ⚙️ **設定画面**: http://localhost:8000/settings
+
+**API動作確認:**
+```bash
+# 部屋タイプ一覧取得
+curl "http://localhost:8000/api/room_types.php"
+
+# プラン一覧取得
+curl "http://localhost:8000/api/plans.php"
+
+# 予約一覧取得
+curl "http://localhost:8000/api/list_reservations.php"
+```
+
+#### 6. 本番環境での設定
+
+**Apache設定例:**
+```apache
+<VirtualHost *:80>
+    ServerName your-domain.com
+    DocumentRoot /path/to/yoyaku6/public
+    
+    <Directory /path/to/yoyaku6/public>
+        AllowOverride All
+        Require all granted
+    </Directory>
+    
+    # PHPの設定
+    php_value upload_max_filesize 10M
+    php_value post_max_size 10M
+</VirtualHost>
+```
+
+**Nginx設定例:**
+```nginx
+server {
+    listen 80;
+    server_name your-domain.com;
+    root /path/to/yoyaku6/public;
+    index index.php index.html;
+    
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+    
+    location ~ \.php$ {
+        fastcgi_pass unix:/var/run/php/php8.0-fpm.sock;
+        fastcgi_index index.php;
+        fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
+        include fastcgi_params;
+    }
+}
+```
+
+### 🔧 開発者向け設定
+
+#### デバッグモードの有効化
+
+`config/database.php` にデバッグ設定を追加：
+```php
+// デバッグモード（開発環境のみ）
+define('DEBUG_MODE', true);
+if (DEBUG_MODE) {
+    error_reporting(E_ALL);
+    ini_set('display_errors', 1);
+}
+```
+
+#### ログファイルの確認
+
+```bash
+# PHPエラーログ
+tail -f /var/log/php_errors.log
+
+# Apacheエラーログ
+tail -f /var/log/apache2/error.log
+
+# Nginxエラーログ
+tail -f /var/log/nginx/error.log
+```
 
 ## 📚 API仕様
 
@@ -262,6 +463,26 @@ yoyaku6/
 - [ ] 会計処理機能
 - [ ] レポート・CSV出力機能
 - [x] メール通知機能
+
+## 📖 開発ガイド
+
+詳細な開発情報については、以下のドキュメントを参照してください：
+
+- **[CONTRIBUTING.md](CONTRIBUTING.md)** - 開発ガイドライン、コーディング規約、テスト方法
+- **[sekkei.md](sekkei.md)** - システム設計書、アーキテクチャ詳細
+- **[k.mdc](.cursor/rules/k.mdc)** - 開発ルール、ベストプラクティス
+
+### 🤝 コントリビューション
+
+このプロジェクトへの貢献を歓迎します！
+
+1. このリポジトリをフォーク
+2. 機能ブランチを作成 (`git checkout -b feature/amazing-feature`)
+3. 変更をコミット (`git commit -m 'feat: 素晴らしい機能を追加'`)
+4. ブランチにプッシュ (`git push origin feature/amazing-feature`)
+5. プルリクエストを作成
+
+詳細は [CONTRIBUTING.md](CONTRIBUTING.md) をご覧ください。
 
 ## 🧪 動作確認
 
@@ -382,4 +603,4 @@ curl -X PUT "http://localhost:3000/api/settings/system.php" \
 
 ## 📄 ライセンス
 
-このプロジェクトは開発中のプロトタイプです。 
+このプロジェクトは開発中のプロトタイプです。

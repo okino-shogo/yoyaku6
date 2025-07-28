@@ -20,7 +20,8 @@ tmp/
 temp/
 cache/
 
-# 設定ファイル（本番環境用）
+# 設定ファイル（機密情報を含む）
+config/database.php
 config/production.php
 .env
 .env.local
@@ -45,4 +46,4 @@ composer.lock
 
 # バックアップファイル
 *.bak
-backup/ 
+backup/

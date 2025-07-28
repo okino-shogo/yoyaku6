@@ -1,0 +1,84 @@
+<?php
+/**
+ * データベース接続設定ファイル（サンプル）
+ * 
+ * このファイルをコピーして database.php として保存し、
+ * あなたの環境に合わせて設定値を変更してください。
+ * 
+ * コピーコマンド:
+ * cp config/database.php.example config/database.php
+ */
+
+$database_config = [
+    'host' => 'localhost',
+    'dbname' => 'yoyaku_system',
+    'username' => 'root',           // ← あなたのMySQLユーザー名に変更
+    'password' => 'your_password',  // ← あなたのMySQLパスワードに変更
+    'charset' => 'utf8mb4',
+    'options' => [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+        PDO::ATTR_EMULATE_PREPARES => false,
+    ]
+];
+
+// デバッグモード（開発環境のみ有効にしてください）
+define('DEBUG_MODE', false);
+if (DEBUG_MODE) {
+    error_reporting(E_ALL);
+    ini_set('display_errors', 1);
+}
+
+/**
+ * PDO接続を作成する関数
+ */
+function createConnection() {
+    global $database_config;
+    
+    try {
+        $dsn = "mysql:host={$database_config['host']};dbname={$database_config['dbname']};charset={$database_config['charset']}";
+        $pdo = new PDO($dsn, $database_config['username'], $database_config['password'], $database_config['options']);
+        return $pdo;
+    } catch (PDOException $e) {
+        if (DEBUG_MODE) {
+            die('データベース接続エラー: ' . $e->getMessage());
+        } else {
+            die('データベース接続に失敗しました。設定を確認してください。');
+        }
+    }
+}
+
+/**
+ * JSONレスポンスを送信する関数
+ */
+function sendJsonResponse($data, $statusCode = 200) {
+    http_response_code($statusCode);
+    header('Content-Type: application/json; charset=utf-8');
+    header('Access-Control-Allow-Origin: *');
+    header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+    header('Access-Control-Allow-Headers: Content-Type, Authorization');
+    
+    echo json_encode($data, JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+/**
+ * エラーレスポンスを送信する関数
+ */
+function sendErrorResponse($message, $statusCode = 400) {
+    sendJsonResponse(['error' => $message], $statusCode);
+}
+
+/**
+ * 成功レスポンスを送信する関数
+ */
+function sendSuccessResponse($data = null, $message = null) {
+    $response = ['success' => true];
+    if ($message) {
+        $response['message'] = $message;
+    }
+    if ($data) {
+        $response['data'] = $data;
+    }
+    sendJsonResponse($response);
+}
