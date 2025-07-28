@@ -22,7 +22,11 @@ INSERT INTO system_settings (setting_key, setting_value, description) VALUES
 ('facility_email', '', '施設メールアドレス'),
 ('checkin_time', '15:00', 'チェックイン時間'),
 ('checkout_time', '10:00', 'チェックアウト時間'),
-('default_list_limit', '50', 'デフォルト一覧表示件数');
+('default_list_limit', '50', 'デフォルト一覧表示件数'),
+-- API設定
+('api_enabled', 'false', 'API機能の有効/無効'),
+('api_key', '', 'API認証キー'),
+('allowed_origins', '', '許可するオリジン（CORS設定）');
 
 -- 4.4.2 既存テーブルの拡張
 -- プランテーブルに状態フラグ追加
@@ -52,4 +56,4 @@ UPDATE room_types SET
     WHEN name = 'ツイン' THEN 1  
     WHEN name = 'ファミリー' THEN 2
     ELSE 1
-  END; 
+  END;

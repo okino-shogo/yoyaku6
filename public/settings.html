@@ -398,6 +398,88 @@
             gap: 20px;
         }
 
+        /* 統合ガイド専用スタイル */
+        .integration-guide {
+            max-width: none;
+        }
+
+        .integration-guide h5 {
+            color: #2c3e50;
+            margin: 25px 0 15px 0;
+            font-size: 16px;
+            font-weight: bold;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 5px;
+        }
+
+        .integration-guide h6 {
+            color: #495057;
+            margin: 15px 0 10px 0;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .code-section {
+            margin-bottom: 25px;
+        }
+
+        .code-section pre {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            padding: 15px;
+            overflow-x: auto;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 13px;
+            line-height: 1.4;
+            margin: 10px 0;
+        }
+
+        .code-section code {
+            background: none;
+            padding: 0;
+            color: #212529;
+        }
+
+        .parameter-table {
+            margin: 15px 0;
+        }
+
+        .parameter-table table {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .parameter-table th {
+            background-color: #e9ecef;
+            font-weight: bold;
+            color: #495057;
+        }
+
+        .parameter-table code {
+            background-color: #f8f9fa;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 12px;
+            color: #e83e8c;
+        }
+
+        .security-notes {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+
+        .security-notes li {
+            margin-bottom: 8px;
+            color: #856404;
+        }
+
         .setting-form .form-group {
             margin-bottom: 0;
         }
@@ -748,6 +830,184 @@
                                     <option value="200">200件</option>
                                 </select>
                                 <div class="form-error" id="default-list-limit-error"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- API設定 -->
+                    <div class="setting-section">
+                        <h4>🔗 API設定</h4>
+                        <div class="setting-form">
+                            <div class="form-group">
+                                <label>
+                                    <input type="checkbox" id="api-enabled"> 外部API連携を有効にする
+                                </label>
+                                <div class="form-help">チェックを外すとすべての外部API連携が無効になります</div>
+                            </div>
+                            <div class="form-group">
+                                <label for="api-key">API Key</label>
+                                <div style="display: flex; gap: 10px; align-items: center;">
+                                    <input type="text" id="api-key" placeholder="APIキーが生成されます" readonly style="flex: 1;">
+                                    <button type="button" class="btn btn-secondary" onclick="generateApiKey()">新規生成</button>
+                                    <button type="button" class="btn btn-secondary" onclick="copyApiKey()" title="コピー">📋</button>
+                                </div>
+                                <div class="form-help">外部システムからの予約情報取得に使用されます</div>
+                            </div>
+                            <div class="form-group">
+                                <label for="api-endpoint">API エンドポイント</label>
+                                <input type="text" id="api-endpoint" readonly style="background-color: #f8f9fa;">
+                                <div class="form-help">外部システムで使用するエンドポイントURL</div>
+                            </div>
+                            <div class="form-group">
+                                <label for="allowed-origins">許可するオリジン</label>
+                                <textarea id="allowed-origins" placeholder="https://example.com\nhttps://app.example.com" rows="3"></textarea>
+                                <div class="form-help">1行に1つずつURLを入力してください（CORS設定）</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 外部システム統合ガイド -->
+                    <div class="setting-section">
+                        <h4>📖 外部システム統合ガイド</h4>
+                        <div class="setting-form">
+                            <div class="integration-guide">
+                                <h5>🔧 実装方法</h5>
+                                <p>以下のサンプルコードを参考に、外部システムから予約情報を取得できます。</p>
+                                
+                                <div class="code-section">
+                                    <h6>JavaScript (Fetch API)</h6>
+                                    <pre><code>// 予約一覧を取得
+const apiKey = 'YOUR_API_KEY_HERE';
+const apiEndpoint = window.location.origin + '/api/reservations/external.php';
+
+fetch(apiEndpoint + '?limit=50&status=confirmed', {
+  method: 'GET',
+  headers: {
+    'X-API-Key': apiKey,
+    'Content-Type': 'application/json'
+  }
+})
+.then(response => response.json())
+.then(data => {
+  if (data.success) {
+    console.log('予約データ:', data.data);
+    console.log('総件数:', data.pagination.total);
+  } else {
+    console.error('エラー:', data.error);
+  }
+})
+.catch(error => console.error('通信エラー:', error));</code></pre>
+                                </div>
+
+                                <div class="code-section">
+                                    <h6>PHP (cURL)</h6>
+                                    <pre><code>$apiKey = 'YOUR_API_KEY_HERE';
+$apiEndpoint = 'https://yourdomain.com/api/reservations/external.php';
+
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, $apiEndpoint . '?limit=50&status=confirmed');
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+curl_setopt($ch, CURLOPT_HTTPHEADER, [
+    'X-API-Key: ' . $apiKey,
+    'Content-Type: application/json'
+]);
+
+$response = curl_exec($ch);
+$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+curl_close($ch);
+
+if ($httpCode === 200) {
+    $data = json_decode($response, true);
+    if ($data['success']) {
+        echo "予約件数: " . count($data['data']) . "\n";
+        foreach ($data['data'] as $reservation) {
+            echo "予約ID: {$reservation['id']}, 宿泊者: {$reservation['guest_name']}\n";
+        }
+    }
+} else {
+    echo "APIエラー: HTTP {$httpCode}\n";
+}</code></pre>
+                                </div>
+
+                                <div class="code-section">
+                                    <h6>Python (requests)</h6>
+                                    <pre><code>import requests
+import json
+
+api_key = 'YOUR_API_KEY_HERE'
+api_endpoint = 'https://yourdomain.com/api/reservations/external.php'
+
+headers = {
+    'X-API-Key': api_key,
+    'Content-Type': 'application/json'
+}
+
+params = {
+    'limit': 50,
+    'status': 'confirmed'
+}
+
+response = requests.get(api_endpoint, headers=headers, params=params)
+
+if response.status_code == 200:
+    data = response.json()
+    if data['success']:
+        print(f"予約件数: {len(data['data'])}")
+        for reservation in data['data']:
+            print(f"予約ID: {reservation['id']}, 宿泊者: {reservation['guest_name']}")
+    else:
+        print(f"APIエラー: {data['error']}")
+else:
+    print(f"HTTPエラー: {response.status_code}")</code></pre>
+                                </div>
+
+                                <h5>📋 利用可能なパラメータ</h5>
+                                <div class="parameter-table">
+                                    <table>
+                                        <thead>
+                                            <tr>
+                                                <th>パラメータ</th>
+                                                <th>説明</th>
+                                                <th>例</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td><code>limit</code></td>
+                                                <td>取得件数（最大1000件）</td>
+                                                <td>50</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>offset</code></td>
+                                                <td>開始位置（ページネーション）</td>
+                                                <td>0</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>status</code></td>
+                                                <td>予約ステータス</td>
+                                                <td>confirmed, cancelled, pending</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>date_from</code></td>
+                                                <td>チェックイン日（開始）</td>
+                                                <td>2024-01-01</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>date_to</code></td>
+                                                <td>チェックイン日（終了）</td>
+                                                <td>2024-12-31</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <h5>🔒 セキュリティ注意事項</h5>
+                                <ul class="security-notes">
+                                    <li>APIキーは安全な場所に保管し、定期的に再生成してください</li>
+                                    <li>HTTPS通信を使用してください</li>
+                                    <li>必要最小限のオリジンのみを許可してください</li>
+                                    <li>APIキーをクライアントサイドのコードに直接埋め込まないでください</li>
+                                </ul>
                             </div>
                         </div>
                     </div>
@@ -1867,6 +2127,12 @@
             
             // 表示設定
             document.getElementById('default-list-limit').value = settings.default_list_limit?.value || '50';
+            
+            // API設定
+            document.getElementById('api-enabled').checked = settings.api_enabled?.value === 'true';
+            document.getElementById('api-key').value = settings.api_key?.value || '';
+            document.getElementById('api-endpoint').value = `${window.location.origin}/api/reservations/external.php`;
+            document.getElementById('allowed-origins').value = settings.allowed_origins?.value || '';
         }
 
         // システム設定の保存
@@ -1880,7 +2146,11 @@
                 facility_email: document.getElementById('facility-email').value,
                 checkin_time: document.getElementById('checkin-time').value,
                 checkout_time: document.getElementById('checkout-time').value,
-                default_list_limit: document.getElementById('default-list-limit').value
+                default_list_limit: document.getElementById('default-list-limit').value,
+                // API設定
+                api_enabled: document.getElementById('api-enabled').checked ? 'true' : 'false',
+                api_key: document.getElementById('api-key').value,
+                allowed_origins: document.getElementById('allowed-origins').value
             };
 
             // クライアント側バリデーション
@@ -2089,6 +2359,48 @@
         }
 
         // =======================================================================
+        // API設定関数
+        // =======================================================================
+
+        // APIキーの生成
+        function generateApiKey() {
+            if (confirm('新しいAPIキーを生成しますか？\n既存のAPIキーは無効になります。')) {
+                const apiKey = generateRandomApiKey();
+                document.getElementById('api-key').value = apiKey;
+                showSuccess('新しいAPIキーを生成しました。設定を保存してください。');
+            }
+        }
+
+        // ランダムなAPIキーを生成
+        function generateRandomApiKey() {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+            let result = '';
+            for (let i = 0; i < 32; i++) {
+                result += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return result;
+        }
+
+        // APIキーをクリップボードにコピー
+        function copyApiKey() {
+            const apiKeyInput = document.getElementById('api-key');
+            if (!apiKeyInput.value) {
+                showError('コピーするAPIキーがありません');
+                return;
+            }
+            
+            navigator.clipboard.writeText(apiKeyInput.value).then(() => {
+                showSuccess('APIキーをクリップボードにコピーしました');
+            }).catch(err => {
+                console.error('コピーに失敗しました:', err);
+                // フォールバック: 選択状態にする
+                apiKeyInput.select();
+                apiKeyInput.setSelectionRange(0, 99999);
+                showSuccess('APIキーを選択しました。Ctrl+Cでコピーしてください');
+            });
+        }
+
+        // =======================================================================
         // ユーティリティ関数
         // =======================================================================
 
@@ -2234,4 +2546,4 @@
         });
     </script>
 </body>
-</html> 
+</html>

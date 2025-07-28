@@ -92,6 +92,10 @@ function handleUpdateSettings($pdo) {
         'checkin_time',
         'checkout_time',
         'default_list_limit',
+        // API設定
+        'api_enabled',
+        'api_key',
+        'allowed_origins',
         // メール機能基本設定
         'email_enabled',
         'email_from_address',
@@ -260,6 +264,41 @@ function validateSettingValue($key, $value) {
             if (!empty($value)) {
                 if (strlen($value) > 50) {
                     return '送信者名は50文字以内にしてください';
+                }
+            }
+            break;
+
+        // API設定のバリデーション
+        case 'api_enabled':
+            if (!in_array($value, ['true', 'false'])) {
+                return 'API設定は有効（true）または無効（false）で設定してください';
+            }
+            break;
+
+        case 'api_key':
+            if (!empty($value)) {
+                if (strlen($value) < 16) {
+                    return 'APIキーは16文字以上にしてください';
+                }
+                if (strlen($value) > 64) {
+                    return 'APIキーは64文字以内にしてください';
+                }
+                if (!preg_match('/^[A-Za-z0-9]+$/', $value)) {
+                    return 'APIキーは英数字のみ使用可能です';
+                }
+            }
+            break;
+
+        case 'allowed_origins':
+            if (!empty($value)) {
+                $origins = explode("\n", $value);
+                foreach ($origins as $origin) {
+                    $origin = trim($origin);
+                    if (!empty($origin)) {
+                        if (!filter_var($origin, FILTER_VALIDATE_URL)) {
+                            return '許可するオリジンは有効なURLで入力してください';
+                        }
+                    }
                 }
             }
             break;
