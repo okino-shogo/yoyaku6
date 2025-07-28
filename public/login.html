@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理者ログイン - 予約管理システム</title>
+    
+    <!-- Google reCAPTCHA v3 - 動的読み込み -->
+    <script id="recaptcha-script"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .login-container {
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .login-header h1 {
+            color: #333;
+            font-size: 1.8rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .login-header p {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #e1e1e1;
+            border-radius: 5px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 0.75rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .error {
+            background: #fee;
+            color: #c33;
+            padding: 0.75rem;
+            border-radius: 5px;
+            margin-bottom: 1rem;
+            border-left: 4px solid #c33;
+        }
+
+        .success {
+            background: #efe;
+            color: #3c3;
+            padding: 0.75rem;
+            border-radius: 5px;
+            margin-bottom: 1rem;
+            border-left: 4px solid #3c3;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 1rem 0;
+        }
+
+        .loading .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 2rem;
+            padding-top: 1rem;
+            border-top: 1px solid #e1e1e1;
+        }
+
+        .footer a {
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+
+        .security-notice {
+            background: #fff3cd;
+            color: #856404;
+            padding: 0.75rem;
+            border-radius: 5px;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+            border-left: 4px solid #ffc107;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-header">
+            <h1>🏨 管理者ログイン</h1>
+            <p>予約管理システムにアクセスするにはログインが必要です</p>
+        </div>
+
+        <div class="security-notice">
+            <strong>セキュリティ強化済み:</strong> このシステムは暗号化通信（HTTPS）と多要素認証で保護されています。
+        </div>
+
+        <div id="message-area"></div>
+
+        <form id="login-form">
+            <div class="form-group">
+                <label for="username">ユーザー名</label>
+                <input type="text" id="username" name="username" required autocomplete="username">
+            </div>
+
+            <div class="form-group">
+                <label for="password">パスワード</label>
+                <input type="password" id="password" name="password" required autocomplete="current-password">
+            </div>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <span>ログイン中...</span>
+            </div>
+
+            <!-- CAPTCHA対策 -->
+            <input type="hidden" id="recaptcha_token" name="recaptcha_token" value="">
+
+            <button type="submit" class="btn" id="login-btn">ログイン</button>
+        </form>
+
+        <div class="footer">
+            <a href="/">← 予約フォームに戻る</a>
+        </div>
+    </div>
+
+    <script>
+        let captchaConfig = null;
+        
+        document.addEventListener('DOMContentLoaded', async function() {
+            const form = document.getElementById('login-form');
+            const loginBtn = document.getElementById('login-btn');
+            const loading = document.getElementById('loading');
+            const messageArea = document.getElementById('message-area');
+
+            // CAPTCHA設定を初期化
+            await initializeCaptcha();
+
+            form.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                // CAPTCHAトークン再取得
+                await refreshCaptchaBeforeSubmit();
+                
+                const formData = new FormData(form);
+                const data = Object.fromEntries(formData);
+
+                // UI更新
+                loading.style.display = 'block';
+                loginBtn.disabled = true;
+                clearMessages();
+
+                try {
+                    const response = await fetch('/api/auth/login.php', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(data)
+                    });
+
+                    const result = await response.json();
+
+                    if (response.ok && result.success) {
+                        showMessage('ログインに成功しました。管理画面に移動します...', 'success');
+                        
+                        // CSRFトークンを保存
+                        sessionStorage.setItem('csrf_token', result.csrf_token);
+                        
+                        // 少し待ってから管理画面にリダイレクト
+                        setTimeout(() => {
+                            window.location.href = '/admin';
+                        }, 1500);
+                    } else {
+                        throw new Error(result.error || 'ログインに失敗しました');
+                    }
+                } catch (error) {
+                    console.error('Login error:', error);
+                    showMessage(error.message, 'error');
+                } finally {
+                    loading.style.display = 'none';
+                    loginBtn.disabled = false;
+                }
+            });
+
+            function showMessage(message, type) {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = type;
+                messageDiv.textContent = message;
+                messageArea.innerHTML = '';
+                messageArea.appendChild(messageDiv);
+            }
+
+            function clearMessages() {
+                messageArea.innerHTML = '';
+            }
+
+            // CAPTCHA初期化関数
+            async function initializeCaptcha() {
+                try {
+                    const response = await fetch('/api/captcha_config.php');
+                    captchaConfig = await response.json();
+                    
+                    if (!captchaConfig.success) {
+                        console.error('CAPTCHA設定エラー:', captchaConfig.error);
+                        showMessage('セキュリティ設定エラーが発生しました', 'error');
+                        return;
+                    }
+                    
+                    // バイパスモードの場合
+                    if (captchaConfig.bypass_mode) {
+                        console.log('開発環境：CAPTCHA検証をバイパス中');
+                        document.getElementById('recaptcha_token').value = 'development_bypass_token';
+                        return;
+                    }
+                    
+                    // reCAPTCHAスクリプトを動的に読み込み
+                    if (captchaConfig.site_key && captchaConfig.site_key !== 'development_bypass') {
+                        const script = document.createElement('script');
+                        script.src = captchaConfig.script_url;
+                        script.onload = () => {
+                            getCaptchaToken();
+                        };
+                        script.onerror = () => {
+                            console.error('reCAPTCHAスクリプトの読み込みに失敗しました');
+                        };
+                        document.head.appendChild(script);
+                    }
+                    
+                } catch (error) {
+                    console.error('CAPTCHA初期化エラー:', error);
+                    showMessage('セキュリティ機能の初期化に失敗しました', 'error');
+                }
+            }
+
+            // CAPTCHAトークン取得関数
+            async function getCaptchaToken() {
+                try {
+                    // バイパスモードの場合
+                    if (captchaConfig && captchaConfig.bypass_mode) {
+                        document.getElementById('recaptcha_token').value = 'development_bypass_token';
+                        return;
+                    }
+
+                    // reCAPTCHA v3トークン取得
+                    if (typeof grecaptcha !== 'undefined' && captchaConfig && captchaConfig.site_key) {
+                        grecaptcha.ready(function() {
+                            grecaptcha.execute(captchaConfig.site_key, {action: 'login'}).then(function(token) {
+                                document.getElementById('recaptcha_token').value = token;
+                            }).catch(function(error) {
+                                console.error('CAPTCHAトークン取得エラー:', error);
+                            });
+                        });
+                    }
+                } catch (error) {
+                    console.error('CAPTCHA初期化エラー:', error);
+                }
+            }
+
+            // フォーム送信前にCAPTCHAトークンを再取得
+            async function refreshCaptchaBeforeSubmit() {
+                try {
+                    // バイパスモードの場合
+                    if (captchaConfig && captchaConfig.bypass_mode) {
+                        document.getElementById('recaptcha_token').value = 'development_bypass_token';
+                        return Promise.resolve();
+                    }
+
+                    if (typeof grecaptcha !== 'undefined' && captchaConfig && captchaConfig.site_key) {
+                        return new Promise((resolve) => {
+                            grecaptcha.ready(function() {
+                                grecaptcha.execute(captchaConfig.site_key, {action: 'login'}).then(function(token) {
+                                    document.getElementById('recaptcha_token').value = token;
+                                    resolve();
+                                }).catch(function(error) {
+                                    console.error('CAPTCHA再取得エラー:', error);
+                                    resolve(); // エラーでも続行
+                                });
+                            });
+                        });
+                    } else {
+                        return Promise.resolve();
+                    }
+                } catch (error) {
+                    console.error('CAPTCHA再取得エラー:', error);
+                    return Promise.resolve();
+                }
+            }
+
+            // エンターキーでログイン
+            document.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter' && !loginBtn.disabled) {
+                    form.dispatchEvent(new Event('submit'));
+                }
+            });
+        });
+    </script>
+</body>
+</html> 
