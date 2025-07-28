@@ -9,14 +9,18 @@ $path = parse_url($request_uri, PHP_URL_PATH);
 // APIリクエストの処理
 if (strpos($path, '/api/') === 0) {
     $api_file = __DIR__ . $path;
+    // デバッグ用ログ
+    error_log("API Request: $path, File: $api_file, Exists: " . (file_exists($api_file) ? 'yes' : 'no'));
+    
     if (file_exists($api_file) && is_file($api_file)) {
         include $api_file;
+        exit; // 重要: includeの後にexitを追加
     } else {
         http_response_code(404);
         header('Content-Type: application/json');
-        echo json_encode(['error' => 'API endpoint not found']);
+        echo json_encode(['error' => 'API endpoint not found', 'path' => $path, 'file' => $api_file]);
+        exit;
     }
-    return;
 }
 
 // 静的ファイルの処理
@@ -117,4 +121,4 @@ switch ($path) {
 </html>";
         break;
 }
-?> 
+?>
